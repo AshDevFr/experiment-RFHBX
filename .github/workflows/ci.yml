@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend Tests
@@ -75,5 +79,11 @@ jobs:
       - name: Lint (Biome)
         run: npx biome check .
 
+      - name: TypeScript check
+        run: npx tsc -b --noEmit
+
       - name: Run tests (Vitest)
         run: npm run test
+
+      - name: Build
+        run: npm run build
