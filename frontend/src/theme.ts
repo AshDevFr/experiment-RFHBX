@@ -1,4 +1,4 @@
-import { createTheme } from '@mantine/core'
+import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
   fontFamily: '"Press Start 2P", monospace',
@@ -63,4 +63,4 @@ export const theme = createTheme({
       },
     },
   },
-})
+});

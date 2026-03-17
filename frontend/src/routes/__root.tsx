@@ -1,10 +1,10 @@
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { ActionIcon, AppShell, Group, Text } from '@mantine/core'
-import { useThemeStore } from '../store/themeStore'
+import { ActionIcon, AppShell, Group, Text } from '@mantine/core';
+import { createRootRoute, Outlet } from '@tanstack/react-router';
+import { useThemeStore } from '../store/themeStore';
 
 function RootLayout() {
-  const colorScheme = useThemeStore((s) => s.colorScheme)
-  const toggle = useThemeStore((s) => s.toggle)
+  const colorScheme = useThemeStore((s) => s.colorScheme);
+  const toggle = useThemeStore((s) => s.toggle);
 
   return (
     <AppShell header={{ height: 60 }} padding="md">
@@ -28,9 +28,9 @@ function RootLayout() {
         <Outlet />
       </AppShell.Main>
     </AppShell>
-  )
+  );
 }
 
 export const Route = createRootRoute({
   component: RootLayout,
-})
+});

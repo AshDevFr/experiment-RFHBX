@@ -1,9 +1,8 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig } from 'vite';
 
-const apiTarget = process.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const apiTarget = process.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [
@@ -22,8 +21,4 @@ export default defineConfig({
       },
     },
   },
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test-setup.ts'],
-  },
-})
+});

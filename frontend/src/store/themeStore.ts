@@ -1,11 +1,11 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-type ColorScheme = 'dark' | 'light'
+type ColorScheme = 'dark' | 'light';
 
 interface ThemeState {
-  colorScheme: ColorScheme
-  toggle: () => void
+  colorScheme: ColorScheme;
+  toggle: () => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -19,4 +19,4 @@ export const useThemeStore = create<ThemeState>()(
     }),
     { name: 'mordors-edge-theme' },
   ),
-)
+);

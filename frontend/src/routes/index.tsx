@@ -1,32 +1,32 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { Alert, Badge, Container, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core'
-import { api } from '../lib/api'
-import { type Health, healthSchema } from '../schemas/health'
-import { PixelSprite } from '../components/PixelSprite'
+import { Alert, Badge, Container, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { PixelSprite } from '../components/PixelSprite';
+import { api } from '../lib/api';
+import { type Health, healthSchema } from '../schemas/health';
 
 function IndexPage() {
-  const [health, setHealth] = useState<Health | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [health, setHealth] = useState<Health | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
       .get('/api/health')
       .then((res) => {
-        const parsed = healthSchema.safeParse(res.data)
+        const parsed = healthSchema.safeParse(res.data);
         if (parsed.success) {
-          setHealth(parsed.data)
+          setHealth(parsed.data);
         } else {
-          setError('Invalid response format from server')
+          setError('Invalid response format from server');
         }
       })
       .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Failed to reach API'
-        setError(message)
+        const message = err instanceof Error ? err.message : 'Failed to reach API';
+        setError(message);
       })
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <Container size="sm" py="xl">
@@ -90,7 +90,7 @@ function IndexPage() {
         </Paper>
       </Stack>
     </Container>
-  )
+  );
 }
 
-export const Route = createFileRoute('/')({ component: IndexPage })
+export const Route = createFileRoute('/')({ component: IndexPage });
