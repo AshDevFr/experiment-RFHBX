@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+echo "=== Pre-push: Running backend tests ==="
+cd "$ROOT_DIR/backend"
+if [ -f Gemfile.lock ]; then
+  bundle exec rspec --fail-fast
+else
+  echo "  Skipping: Gemfile.lock not found (run 'bundle install' first)"
+fi
+
+echo ""
+echo "=== Pre-push: Running frontend checks ==="
+cd "$ROOT_DIR/frontend"
+if [ -f package-lock.json ]; then
+  npx biome check .
+  npm run test
+else
+  echo "  Skipping: package-lock.json not found (run 'npm install' first)"
+fi
+
+echo ""
+echo "=== All pre-push checks passed ==="

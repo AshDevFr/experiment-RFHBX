@@ -33,6 +33,19 @@ mordors-edge/
 - A pre-push git hook runs the test suite automatically
 - Never skip hooks with `--no-verify`
 
+#### Installing the Pre-Push Hook
+
+The project ships a pre-push hook in `.githooks/pre-push`. To activate it, configure
+Git to use the `.githooks` directory:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This only needs to be done once per clone. The hook runs RSpec (backend) and
+Biome + Vitest (frontend) before every push. If either suite fails, the push
+is aborted so broken code never reaches the remote.
+
 ### Git Discipline
 - Fetch latest `main` before starting any new branch:
   ```bash
