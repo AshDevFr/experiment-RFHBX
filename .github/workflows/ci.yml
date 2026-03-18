@@ -92,7 +92,22 @@ jobs:
           exit 1
 
       - name: Run RSpec
-        run: bundle exec rspec
+        id: rspec
+        continue-on-error: true
+        run: bundle exec rspec 2>&1 | tee /tmp/rspec-output.txt
+
+      - name: Upload RSpec output on failure
+        if: steps.rspec.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rspec-output
+          path: /tmp/rspec-output.txt
+
+      - name: Fail if RSpec failed
+        if: steps.rspec.outcome == 'failure'
+        run: |
+          cat /tmp/rspec-output.txt
+          exit 1
 
   frontend:
     name: Frontend Checks
