@@ -59,7 +59,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3
 
       - name: Set up database
-        run: bundle exec rails db:prepare
+        run: bundle exec rails db:migrate
 
       - name: Run RSpec
         run: bundle exec rspec
