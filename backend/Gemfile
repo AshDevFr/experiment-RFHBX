@@ -10,12 +10,14 @@ gem "puma", ">= 5.0"
 gem "rack-cors"
 gem "bootsnap", require: false
 gem "tzinfo-data", platforms: %i[windows jruby]
+gem "rswag-api"
 
 group :development, :test do
   gem "debug", platforms: %i[mri windows]
   gem "rspec-rails", "~> 7.1"
   gem "factory_bot_rails"
   gem "faker"
+  gem "rswag-specs"
 end
 
 group :test do

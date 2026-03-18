@@ -1,0 +1,1334 @@
+---
+openapi: 3.0.3
+info:
+  title: Mordor's Edge API
+  version: v1
+  description: API for the Mordor's Edge fantasy RPG simulation — manage characters,
+    quests, artifacts, and the simulation engine.
+servers:
+- url: "/"
+  description: Default server
+components:
+  schemas:
+    Character:
+      type: object
+      description: A character in the simulation
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Aragorn
+        race:
+          type: string
+          example: Human
+        realm:
+          type: string
+          nullable: true
+          example: Gondor
+        title:
+          type: string
+          nullable: true
+          example: Ranger of the North
+        ring_bearer:
+          type: boolean
+          example: false
+        level:
+          type: integer
+          example: 20
+        xp:
+          type: integer
+          example: 5000
+        strength:
+          type: integer
+          example: 18
+        wisdom:
+          type: integer
+          example: 14
+        endurance:
+          type: integer
+          example: 16
+        status:
+          type: string
+          enum:
+          - idle
+          - on_quest
+          - fallen
+          example: idle
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - race
+      - level
+      - xp
+      - strength
+      - wisdom
+      - endurance
+      - status
+    CharacterDetail:
+      allOf:
+      - "$ref": "#/components/schemas/Character"
+      - type: object
+        description: Character with nested quests and artifacts
+        properties:
+          quests:
+            type: array
+            items:
+              "$ref": "#/components/schemas/QuestSummary"
+          artifacts:
+            type: array
+            items:
+              "$ref": "#/components/schemas/ArtifactSummary"
+    CharacterSummary:
+      type: object
+      description: Abbreviated character info used in nested responses
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Legolas
+        race:
+          type: string
+          example: Elf
+        level:
+          type: integer
+          example: 15
+        status:
+          type: string
+          enum:
+          - idle
+          - on_quest
+          - fallen
+          example: on_quest
+      required:
+      - id
+      - name
+      - race
+      - level
+      - status
+    CharacterInput:
+      type: object
+      description: Payload for creating or updating a character
+      properties:
+        name:
+          type: string
+          example: Aragorn
+        race:
+          type: string
+          example: Human
+        realm:
+          type: string
+          example: Gondor
+        title:
+          type: string
+          example: Ranger of the North
+        ring_bearer:
+          type: boolean
+          example: false
+        level:
+          type: integer
+          example: 20
+        xp:
+          type: integer
+          example: 5000
+        strength:
+          type: integer
+          example: 18
+        wisdom:
+          type: integer
+          example: 14
+        endurance:
+          type: integer
+          example: 16
+        status:
+          type: string
+          enum:
+          - idle
+          - on_quest
+          - fallen
+      required:
+      - name
+      - race
+      - strength
+      - wisdom
+      - endurance
+    Quest:
+      type: object
+      description: A quest in the simulation
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Destroy the One Ring
+        description:
+          type: string
+          nullable: true
+          example: Journey to Mount Doom and cast the Ring into the fires of Orodruin.
+        status:
+          type: string
+          enum:
+          - pending
+          - active
+          - completed
+          - failed
+          example: active
+        danger_level:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 10
+        region:
+          type: string
+          nullable: true
+          example: Mordor
+        progress:
+          type: string
+          example: '0.0000'
+          description: Decimal (0–1 scale)
+        success_chance:
+          type: string
+          nullable: true
+          example: '0.4550'
+          description: Decimal success probability (0–1 scale), null if uncalculated
+        quest_type:
+          type: string
+          enum:
+          - campaign
+          - random
+          example: campaign
+        campaign_order:
+          type: integer
+          nullable: true
+          example: 1
+        attempts:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - title
+      - status
+      - danger_level
+    QuestDetail:
+      allOf:
+      - "$ref": "#/components/schemas/Quest"
+      - type: object
+        description: Quest with nested member list
+        properties:
+          members:
+            type: array
+            items:
+              "$ref": "#/components/schemas/CharacterSummary"
+    QuestSummary:
+      type: object
+      description: Abbreviated quest info used in nested responses
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Destroy the One Ring
+        status:
+          type: string
+          enum:
+          - pending
+          - active
+          - completed
+          - failed
+          example: active
+        danger_level:
+          type: integer
+          example: 10
+      required:
+      - id
+      - title
+      - status
+      - danger_level
+    QuestInput:
+      type: object
+      description: Payload for creating or updating a quest
+      properties:
+        title:
+          type: string
+          example: The Battle of Helm's Deep
+        description:
+          type: string
+          example: Defend the fortress against Saruman's army.
+        status:
+          type: string
+          enum:
+          - pending
+          - active
+          - completed
+          - failed
+        danger_level:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 8
+        region:
+          type: string
+          example: Rohan
+        progress:
+          type: string
+          example: '0.0'
+        quest_type:
+          type: string
+          enum:
+          - campaign
+          - random
+        campaign_order:
+          type: integer
+          example: 2
+        attempts:
+          type: integer
+          example: 0
+      required:
+      - title
+      - danger_level
+    Artifact:
+      type: object
+      description: A magical artifact in the simulation
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: The One Ring
+        artifact_type:
+          type: string
+          example: ring
+        power:
+          type: string
+          nullable: true
+          example: '100'
+          description: Artifact power level (text column)
+        corrupted:
+          type: boolean
+          example: true
+        character_id:
+          type: integer
+          nullable: true
+          example: 1
+        stat_bonus:
+          type: object
+          additionalProperties: true
+          example:
+            wisdom: 5
+          description: JSONB bonus stats map; empty object {} when none set
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - artifact_type
+    ArtifactDetail:
+      allOf:
+      - "$ref": "#/components/schemas/Artifact"
+      - type: object
+        description: Artifact with owning character details
+        properties:
+          character:
+            nullable: true
+            allOf:
+            - "$ref": "#/components/schemas/CharacterSummary"
+    ArtifactSummary:
+      type: object
+      description: Abbreviated artifact info used in nested responses
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Sting
+        artifact_type:
+          type: string
+          example: sword
+        power:
+          type: string
+          nullable: true
+          example: '75'
+        corrupted:
+          type: boolean
+          example: false
+      required:
+      - id
+      - name
+      - artifact_type
+    ArtifactInput:
+      type: object
+      description: Payload for creating or updating an artifact
+      properties:
+        name:
+          type: string
+          example: Mithril Coat
+        artifact_type:
+          type: string
+          example: armour
+        power:
+          type: string
+          example: '90'
+        corrupted:
+          type: boolean
+          example: false
+        character_id:
+          type: integer
+          nullable: true
+          example: 1
+        stat_bonus:
+          type: object
+          additionalProperties: true
+          example:
+            endurance: 20
+      required:
+      - name
+      - artifact_type
+    QuestEvent:
+      type: object
+      description: An event recorded on a quest (append-only; no updated_at)
+      properties:
+        id:
+          type: integer
+          example: 1
+        quest_id:
+          type: integer
+          example: 1
+        event_type:
+          type: string
+          enum:
+          - started
+          - progress
+          - completed
+          - failed
+          - restarted
+          example: progress
+        message:
+          type: string
+          nullable: true
+          example: The fellowship has crossed the Misty Mountains.
+        data:
+          type: object
+          additionalProperties: true
+          description: JSONB payload; empty object {} when not set
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - quest_id
+      - event_type
+    SimulationConfig:
+      type: object
+      description: Global simulation configuration (singleton)
+      properties:
+        id:
+          type: integer
+          example: 1
+        mode:
+          type: string
+          enum:
+          - campaign
+          - random
+          example: campaign
+        running:
+          type: boolean
+          example: false
+        tick_interval_seconds:
+          type: integer
+          example: 60
+        progress_min:
+          type: string
+          example: '0.0100'
+          description: Minimum tick progress increment (decimal string)
+        progress_max:
+          type: string
+          example: '0.1000'
+          description: Maximum tick progress increment (decimal string)
+        campaign_position:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - mode
+      - running
+    LeaderboardEntry:
+      type: object
+      description: Character summary for leaderboard ranking
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Gandalf the White
+        race:
+          type: string
+          example: Wizard
+        level:
+          type: integer
+          example: 20
+        xp:
+          type: integer
+          example: 99999
+        status:
+          type: string
+          enum:
+          - idle
+          - on_quest
+          - fallen
+          example: idle
+      required:
+      - id
+      - name
+      - level
+      - xp
+      - status
+    QueuedResponse:
+      type: object
+      description: Acknowledgement that an async message was dispatched
+      properties:
+        status:
+          type: string
+          example: queued
+        message:
+          type: string
+          example: Palantir message dispatched
+      required:
+      - status
+      - message
+    HealthStatus:
+      type: object
+      description: API health check response
+      properties:
+        status:
+          type: string
+          example: ok
+        version:
+          type: string
+          example: 0.1.0
+        environment:
+          type: string
+          example: production
+      required:
+      - status
+      - version
+      - environment
+    ErrorResponse:
+      type: object
+      description: Single-error response
+      properties:
+        error:
+          type: string
+          example: Not found
+      required:
+      - error
+    ValidationErrors:
+      type: object
+      description: Validation failure response with multiple messages
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+          example:
+          - Name can't be blank
+          - Level must be greater than 0
+      required:
+      - errors
+paths:
+  "/api/v1/artifacts":
+    get:
+      summary: List all artifacts
+      tags:
+      - Artifacts
+      operationId: listArtifacts
+      description: Returns a paginated list of all artifacts, ordered by name.
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          example: 1
+        required: false
+        description: 'Page number (default: 1)'
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          example: 25
+        required: false
+        description: 'Results per page (max: 100, default: 25)'
+      responses:
+        '200':
+          description: artifacts retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Artifact"
+    post:
+      summary: Create an artifact
+      tags:
+      - Artifacts
+      operationId: createArtifact
+      description: Creates a new artifact. Artifacts may optionally be assigned to
+        a character.
+      parameters: []
+      responses:
+        '201':
+          description: artifact created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Artifact"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ValidationErrors"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - artifact
+              properties:
+                artifact:
+                  "$ref": "#/components/schemas/ArtifactInput"
+        required: true
+  "/api/v1/artifacts/{id}":
+    parameters:
+    - name: id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Artifact ID
+      example: 1
+    get:
+      summary: Get an artifact
+      tags:
+      - Artifacts
+      operationId: getArtifact
+      description: Returns a single artifact with its owning character (if assigned).
+      responses:
+        '200':
+          description: artifact found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ArtifactDetail"
+        '404':
+          description: artifact not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update an artifact
+      tags:
+      - Artifacts
+      operationId: updateArtifact
+      description: Updates an existing artifact. Artifacts cannot be destroyed once
+        created.
+      parameters: []
+      responses:
+        '200':
+          description: artifact updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Artifact"
+        '404':
+          description: artifact not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ValidationErrors"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - artifact
+              properties:
+                artifact:
+                  "$ref": "#/components/schemas/ArtifactInput"
+        required: true
+  "/api/v1/characters":
+    get:
+      summary: List all characters
+      tags:
+      - Characters
+      operationId: listCharacters
+      description: Returns a paginated list of all characters, ordered by name.
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          example: 1
+        required: false
+        description: 'Page number (default: 1)'
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          example: 25
+        required: false
+        description: 'Results per page (max: 100, default: 25)'
+      responses:
+        '200':
+          description: characters retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Character"
+    post:
+      summary: Create a character
+      tags:
+      - Characters
+      operationId: createCharacter
+      description: Creates a new character in the simulation.
+      parameters: []
+      responses:
+        '201':
+          description: character created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Character"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ValidationErrors"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - character
+              properties:
+                character:
+                  "$ref": "#/components/schemas/CharacterInput"
+        required: true
+  "/api/v1/characters/{id}":
+    parameters:
+    - name: id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Character ID
+      example: 1
+    get:
+      summary: Get a character
+      tags:
+      - Characters
+      operationId: getCharacter
+      description: Returns a single character with their quests and artifacts.
+      responses:
+        '200':
+          description: character found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CharacterDetail"
+        '404':
+          description: character not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update a character
+      tags:
+      - Characters
+      operationId: updateCharacter
+      description: Updates an existing character's attributes.
+      parameters: []
+      responses:
+        '200':
+          description: character updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Character"
+        '404':
+          description: character not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ValidationErrors"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - character
+              properties:
+                character:
+                  "$ref": "#/components/schemas/CharacterInput"
+        required: true
+    delete:
+      summary: Delete a character
+      tags:
+      - Characters
+      operationId: deleteCharacter
+      description: Permanently removes a character from the simulation.
+      responses:
+        '204':
+          description: character deleted
+        '404':
+          description: character not found
+  "/api/v1/events":
+    get:
+      summary: List all events
+      tags:
+      - Events
+      operationId: listEvents
+      description: Returns a paginated list of quest events across all quests. Supports
+        filtering by event_type and quest_id.
+      parameters:
+      - name: event_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - started
+          - progress
+          - completed
+          - failed
+          - restarted
+        required: false
+        description: Filter by event type
+      - name: quest_id
+        in: query
+        schema:
+          type: integer
+        required: false
+        description: Filter events by quest
+      - name: page
+        in: query
+        schema:
+          type: integer
+          example: 1
+        required: false
+        description: 'Page number (default: 1)'
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          example: 25
+        required: false
+        description: 'Results per page (max: 100, default: 25)'
+      responses:
+        '200':
+          description: events retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/QuestEvent"
+  "/api/health":
+    get:
+      summary: Check API health
+      tags:
+      - Health
+      operationId: getHealth
+      description: Returns the API status, version, and environment. Useful for liveness
+        probes.
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/HealthStatus"
+  "/api/v1/leaderboard":
+    get:
+      summary: Get the leaderboard
+      tags:
+      - Leaderboard
+      operationId: getLeaderboard
+      description: Returns the top characters ranked by level (descending) then XP
+        (descending).
+      parameters:
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          example: 25
+        required: false
+        description: 'Number of entries to return (max: 100, default: 25)'
+      responses:
+        '200':
+          description: leaderboard retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/LeaderboardEntry"
+  "/api/v1/palantir/send":
+    post:
+      summary: Send a Palantir message
+      tags:
+      - Palantir
+      operationId: sendPalantirMessage
+      description: Dispatches an asynchronous message via the Palantir (the seeing-stone).
+        The message is queued for background processing.
+      parameters: []
+      responses:
+        '202':
+          description: message queued
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/QueuedResponse"
+        '422':
+          description: message is blank
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - message
+              properties:
+                message:
+                  type: string
+                  description: The message to dispatch through the Palantir
+                  example: The Eye of Sauron has turned toward Gondor.
+        required: true
+  "/api/v1/quests":
+    get:
+      summary: List all quests
+      tags:
+      - Quests
+      operationId: listQuests
+      description: Returns a paginated list of quests. Optionally filter by status.
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - active
+          - completed
+          - failed
+        required: false
+        description: Filter quests by status
+      - name: page
+        in: query
+        schema:
+          type: integer
+          example: 1
+        required: false
+        description: 'Page number (default: 1)'
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          example: 25
+        required: false
+        description: 'Results per page (max: 100, default: 25)'
+      responses:
+        '200':
+          description: quests retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Quest"
+    post:
+      summary: Create a quest
+      tags:
+      - Quests
+      operationId: createQuest
+      description: Creates a new quest in the simulation.
+      parameters: []
+      responses:
+        '201':
+          description: quest created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Quest"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ValidationErrors"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - quest
+              properties:
+                quest:
+                  "$ref": "#/components/schemas/QuestInput"
+        required: true
+  "/api/v1/quests/{id}":
+    parameters:
+    - name: id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Quest ID
+      example: 1
+    get:
+      summary: Get a quest
+      tags:
+      - Quests
+      operationId: getQuest
+      description: Returns a single quest with its member list and success chance.
+      responses:
+        '200':
+          description: quest found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/QuestDetail"
+        '404':
+          description: quest not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update a quest
+      tags:
+      - Quests
+      operationId: updateQuest
+      description: Updates an existing quest's attributes.
+      parameters: []
+      responses:
+        '200':
+          description: quest updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Quest"
+        '404':
+          description: quest not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ValidationErrors"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - quest
+              properties:
+                quest:
+                  "$ref": "#/components/schemas/QuestInput"
+        required: true
+    delete:
+      summary: Delete a quest
+      tags:
+      - Quests
+      operationId: deleteQuest
+      description: Permanently removes a quest from the simulation.
+      responses:
+        '204':
+          description: quest deleted
+        '404':
+          description: quest not found
+  "/api/v1/quests/{quest_id}/members":
+    parameters:
+    - name: quest_id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Quest ID
+      example: 1
+    post:
+      summary: Add a member to a quest
+      tags:
+      - Quest Members
+      operationId: addQuestMember
+      description: Adds a character to a quest. A character may only be on one active
+        quest at a time.
+      parameters: []
+      responses:
+        '201':
+          description: member added
+        '422':
+          description: character already on an active quest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - character_id
+              properties:
+                character_id:
+                  type: integer
+                  description: ID of the character to add
+                  example: 1
+                role:
+                  type: string
+                  description: Optional role for the character on this quest
+                  example: guide
+        required: true
+  "/api/v1/quests/{quest_id}/members/{character_id}":
+    parameters:
+    - name: quest_id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Quest ID
+      example: 1
+    - name: character_id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Character ID to remove
+      example: 1
+    delete:
+      summary: Remove a member from a quest
+      tags:
+      - Quest Members
+      operationId: removeQuestMember
+      description: Removes a character from a quest.
+      responses:
+        '204':
+          description: member removed
+  "/api/v1/quests/{quest_id}/events":
+    parameters:
+    - name: quest_id
+      in: path
+      schema:
+        type: integer
+      required: true
+      description: Quest ID
+      example: 1
+    - name: page
+      in: query
+      schema:
+        type: integer
+        example: 1
+      required: false
+      description: 'Page number (default: 1)'
+    - name: per_page
+      in: query
+      schema:
+        type: integer
+        example: 25
+      required: false
+      description: 'Results per page (max: 100, default: 25)'
+    get:
+      summary: List events for a quest
+      tags:
+      - Quest Events
+      operationId: listQuestEvents
+      description: Returns quest events in reverse chronological order.
+      responses:
+        '200':
+          description: events retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/QuestEvent"
+        '404':
+          description: quest not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/api/v1/simulation/status":
+    get:
+      summary: Get simulation status
+      tags:
+      - Simulation
+      operationId: getSimulationStatus
+      description: Returns the current simulation configuration including mode, running
+        state, and position.
+      responses:
+        '200':
+          description: simulation status retrieved
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationConfig"
+  "/api/v1/simulation/start":
+    post:
+      summary: Start the simulation
+      tags:
+      - Simulation
+      operationId: startSimulation
+      description: Starts the simulation engine. Has no effect if already running.
+      responses:
+        '200':
+          description: simulation started (or already running)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationConfig"
+  "/api/v1/simulation/stop":
+    post:
+      summary: Stop the simulation
+      tags:
+      - Simulation
+      operationId: stopSimulation
+      description: Stops the simulation engine. Has no effect if already stopped.
+      responses:
+        '200':
+          description: simulation stopped (or already stopped)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationConfig"
+  "/api/v1/simulation/mode":
+    post:
+      summary: Set simulation mode
+      tags:
+      - Simulation
+      operationId: setSimulationMode
+      description: Switches the simulation between campaign and random mode.
+      parameters: []
+      responses:
+        '200':
+          description: mode updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationConfig"
+        '422':
+          description: invalid mode
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - mode
+              properties:
+                mode:
+                  type: string
+                  enum:
+                  - campaign
+                  - random
+                  description: The desired simulation mode
+                  example: campaign
+        required: true
+  "/api/v1/simulation/reset":
+    post:
+      summary: Reset the simulation
+      tags:
+      - Simulation
+      operationId: resetSimulation
+      description: Resets the simulation to its initial state. Requires explicit confirmation.
+      parameters: []
+      responses:
+        '200':
+          description: simulation reset
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationConfig"
+        '422':
+          description: confirmation missing or false
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - confirm
+              properties:
+                confirm:
+                  type: boolean
+                  description: Must be true to confirm the reset
+                  example: true
+        required: true
