@@ -47,8 +47,10 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "4.0"
-          bundler-cache: true
           working-directory: backend
+
+      - name: Install dependencies
+        run: bundle install --jobs 4 --retry 3
 
       - name: Set up database
         run: bundle exec rails db:prepare
