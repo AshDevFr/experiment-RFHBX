@@ -55,35 +55,8 @@ jobs:
           ruby-version: "4.0"
           working-directory: backend
 
-      - name: Ruby and Bundler info
-        run: |
-          ruby --version
-          gem --version
-          bundle --version
-          cat Gemfile
-
       - name: Install dependencies
-        run: |
-          bundle install --jobs 4 --retry 3 2>&1 | tee /tmp/bundle-output.txt
-          exit ${PIPESTATUS[0]}
-        continue-on-error: true
-        id: bundle_install
-
-      - name: Upload bundle output on failure
-        if: steps.bundle_install.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: bundle-install-output
-          path: /tmp/bundle-output.txt
-
-      - name: Report bundle error
-        if: steps.bundle_install.outcome == 'failure'
-        run: |
-          echo "## Bundle Install Failed" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/bundle-output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          exit 1
+        run: bundle install --jobs 4 --retry 3
 
       - name: Set up database
         run: bundle exec rails db:prepare

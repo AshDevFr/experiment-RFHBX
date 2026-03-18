@@ -12,7 +12,7 @@ gem "bootsnap", require: false
 gem "tzinfo-data", platforms: %i[windows jruby]
 
 group :development, :test do
-  gem "debug", platforms: %i[mri windows linux]
+  gem "debug", platforms: %i[mri windows]
   gem "rspec-rails", "~> 7.1"
   gem "factory_bot_rails"
   gem "faker"
