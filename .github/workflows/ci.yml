@@ -52,19 +52,16 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "4.0"
+          ruby-version: "4.0.2"
           working-directory: backend
 
       - name: Install dependencies
-        working-directory: backend
         run: bundle install --jobs 4 --retry 3
 
       - name: Set up database
-        working-directory: backend
         run: bundle exec rails db:prepare
 
       - name: Run RSpec
-        working-directory: backend
         run: bundle exec rspec
 
   frontend:
