@@ -1,0 +1,184 @@
+# frozen_string_literal: true
+
+require "rails_helper"
+
+RSpec.describe "Api::V1::Quests", type: :request do
+  describe "GET /api/v1/quests" do
+    let!(:quests) { create_list(:quest, 3) }
+
+    it "returns HTTP 200" do
+      get "/api/v1/quests"
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns all quests" do
+      get "/api/v1/quests"
+      expect(response.parsed_body.length).to eq(3)
+    end
+
+    it "filters by status" do
+      create(:quest, :active)
+      get "/api/v1/quests", params: { status: "active" }
+      expect(response.parsed_body.all? { |q| q["status"] == "active" }).to be(true)
+    end
+
+    it "paginates" do
+      get "/api/v1/quests", params: { per_page: 2 }
+      expect(response.parsed_body.length).to eq(2)
+    end
+  end
+
+  describe "GET /api/v1/quests/:id" do
+    let!(:quest) { create(:quest) }
+    let!(:character) { create(:character) }
+
+    before { create(:quest_membership, quest: quest, character: character) }
+
+    it "returns HTTP 200" do
+      get "/api/v1/quests/#{quest.id}"
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns the quest" do
+      get "/api/v1/quests/#{quest.id}"
+      expect(response.parsed_body["id"]).to eq(quest.id)
+    end
+
+    it "includes members" do
+      get "/api/v1/quests/#{quest.id}"
+      expect(response.parsed_body["members"]).to be_an(Array)
+      expect(response.parsed_body["members"].first["id"]).to eq(character.id)
+    end
+
+    it "includes success_chance" do
+      get "/api/v1/quests/#{quest.id}"
+      expect(response.parsed_body).to have_key("success_chance")
+    end
+
+    it "returns 404 for unknown quest" do
+      get "/api/v1/quests/0"
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "POST /api/v1/quests" do
+    let(:valid_params) { { quest: { title: "Destroy the Ring", danger_level: 10 } } }
+
+    it "returns HTTP 201" do
+      post "/api/v1/quests", params: valid_params
+      expect(response).to have_http_status(:created)
+    end
+
+    it "creates a quest" do
+      expect { post "/api/v1/quests", params: valid_params }
+        .to change(Quest, :count).by(1)
+    end
+
+    it "returns 422 when title is missing" do
+      post "/api/v1/quests", params: { quest: { danger_level: 5 } }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
+  describe "PATCH /api/v1/quests/:id" do
+    let!(:quest) { create(:quest) }
+
+    it "returns HTTP 200" do
+      patch "/api/v1/quests/#{quest.id}", params: { quest: { title: "New Title" } }
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "updates the quest" do
+      patch "/api/v1/quests/#{quest.id}", params: { quest: { title: "New Title" } }
+      expect(quest.reload.title).to eq("New Title")
+    end
+
+    it "returns 422 with invalid params" do
+      patch "/api/v1/quests/#{quest.id}", params: { quest: { title: "" } }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns 404 for unknown quest" do
+      patch "/api/v1/quests/0", params: { quest: { title: "X" } }
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "DELETE /api/v1/quests/:id" do
+    let!(:quest) { create(:quest) }
+
+    it "returns HTTP 204" do
+      delete "/api/v1/quests/#{quest.id}"
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "destroys the quest" do
+      expect { delete "/api/v1/quests/#{quest.id}" }
+        .to change(Quest, :count).by(-1)
+    end
+  end
+
+  describe "POST /api/v1/quests/:id/members" do
+    let!(:quest) { create(:quest, :active) }
+    let!(:character) { create(:character) }
+
+    it "returns HTTP 201" do
+      post "/api/v1/quests/#{quest.id}/members",
+           params: { character_id: character.id }
+      expect(response).to have_http_status(:created)
+    end
+
+    it "adds the character to the quest" do
+      expect {
+        post "/api/v1/quests/#{quest.id}/members",
+             params: { character_id: character.id }
+      }.to change(QuestMembership, :count).by(1)
+    end
+
+    it "returns 422 if character is already on an active quest" do
+      other_quest = create(:quest, :active)
+      create(:quest_membership, character: character, quest: other_quest)
+      post "/api/v1/quests/#{quest.id}/members",
+           params: { character_id: character.id }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
+  describe "DELETE /api/v1/quests/:id/members/:character_id" do
+    let!(:quest) { create(:quest) }
+    let!(:character) { create(:character) }
+    let!(:membership) { create(:quest_membership, quest: quest, character: character) }
+
+    it "returns HTTP 204" do
+      delete "/api/v1/quests/#{quest.id}/members/#{character.id}"
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "removes the character from the quest" do
+      expect {
+        delete "/api/v1/quests/#{quest.id}/members/#{character.id}"
+      }.to change(QuestMembership, :count).by(-1)
+    end
+  end
+
+  describe "GET /api/v1/quests/:id/events" do
+    let!(:quest) { create(:quest) }
+    let!(:events) { create_list(:quest_event, 3, quest: quest) }
+
+    it "returns HTTP 200" do
+      get "/api/v1/quests/#{quest.id}/events"
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns events for the quest" do
+      get "/api/v1/quests/#{quest.id}/events"
+      expect(response.parsed_body.length).to eq(3)
+    end
+
+    it "orders by created_at desc" do
+      get "/api/v1/quests/#{quest.id}/events"
+      times = response.parsed_body.map { |e| e["created_at"] }
+      expect(times).to eq(times.sort.reverse)
+    end
+  end
+end
