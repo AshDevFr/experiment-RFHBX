@@ -1,6 +1,13 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
+  # OpenAPI spec (JSON) and Scalar interactive docs
+  get "/api/docs",      to: "api/docs#ui",   format: false
+  get "/api/docs.json", to: "api/docs#spec",  format: false
+
+  # rswag-api engine (serves swagger files from swagger/)
+  mount Rswag::Api::Engine => "/api-docs"
+
   namespace :api do
     get "health", to: "health#show"
 

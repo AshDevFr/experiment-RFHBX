@@ -64,6 +64,11 @@ jobs:
       - name: Run RSpec
         run: bundle exec rspec
 
+      - name: Verify swagger spec is up to date
+        run: |
+          bundle exec rake rswag:specs:swaggerize
+          git diff --exit-code swagger/
+
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
