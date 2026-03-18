@@ -56,58 +56,13 @@ jobs:
           working-directory: backend
 
       - name: Install dependencies
-        id: bundle_install
-        continue-on-error: true
-        run: bundle install --jobs 4 --retry 3 2>&1 | tee /tmp/bundle-output.txt
-
-      - name: Upload bundle output on failure
-        if: steps.bundle_install.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: bundle-install-output
-          path: /tmp/bundle-output.txt
-
-      - name: Fail if bundle install failed
-        if: steps.bundle_install.outcome == 'failure'
-        run: |
-          cat /tmp/bundle-output.txt
-          exit 1
+        run: bundle install --jobs 4 --retry 3
 
       - name: Set up database
-        id: db_setup
-        continue-on-error: true
-        run: bundle exec rails db:prepare 2>&1 | tee /tmp/db-output.txt
-
-      - name: Upload db output on failure
-        if: steps.db_setup.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-setup-output
-          path: /tmp/db-output.txt
-
-      - name: Fail if db setup failed
-        if: steps.db_setup.outcome == 'failure'
-        run: |
-          cat /tmp/db-output.txt
-          exit 1
+        run: bundle exec rails db:prepare
 
       - name: Run RSpec
-        id: rspec
-        continue-on-error: true
-        run: bundle exec rspec 2>&1 | tee /tmp/rspec-output.txt
-
-      - name: Upload RSpec output on failure
-        if: steps.rspec.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rspec-output
-          path: /tmp/rspec-output.txt
-
-      - name: Fail if RSpec failed
-        if: steps.rspec.outcome == 'failure'
-        run: |
-          cat /tmp/rspec-output.txt
-          exit 1
+        run: bundle exec rspec
 
   frontend:
     name: Frontend Checks
