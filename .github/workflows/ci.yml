@@ -44,22 +44,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        working-directory: .
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --no-install-recommends -y libpq-dev
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "4.0"
           working-directory: backend
 
       - name: Install dependencies
-        run: |
-          bundle config set --local path vendor/bundle
-          bundle install --jobs 4 --retry 3 --verbose 2>&1 || {
-            echo "::error::bundle install failed. Dumping Gemfile and Ruby info:"
-            ruby --version
-            gem --version
-            bundle --version
-            cat Gemfile
-            exit 1
-          }
+        run: bundle install --jobs 4 --retry 3
 
       - name: Set up database
         run: bundle exec rails db:prepare
