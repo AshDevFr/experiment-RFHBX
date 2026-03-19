@@ -12,3 +12,9 @@ quest_tick:
   class: QuestTickWorker
   queue: default
   description: "Advances quest progress every minute when simulation is running"
+
+eye_of_sauron:
+  cron: "<%= ENV.fetch('EYE_OF_SAURON_CRON', '* * * * *') %>"
+  class: EyeOfSauronWorker
+  queue: default
+  description: "Sauron's Gaze — scans active regions every minute and creates threat events"
