@@ -1,0 +1,4 @@
+# Ensure scripts always use LF line endings, even on Windows checkouts.
+# CRLF shebangs cause "bad interpreter" errors inside Docker containers.
+bin/* text eol=lf
+*.sh  text eol=lf
