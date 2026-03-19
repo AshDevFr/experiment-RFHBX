@@ -11,9 +11,16 @@ RSpec.describe "Api::V1::Simulation", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "returns the simulation config" do
+    it "returns the simulation config with expected fields" do
       get "/api/v1/simulation/status"
-      expect(response.parsed_body).to include("running", "mode")
+      body = response.parsed_body
+      expect(body).to include("running", "mode", "campaign_position", "tick_count")
+    end
+
+    it "includes tick_count in status response" do
+      SimulationConfig.current.update!(tick_count: 42)
+      get "/api/v1/simulation/status"
+      expect(response.parsed_body["tick_count"]).to eq(42)
     end
   end
 
@@ -28,10 +35,14 @@ RSpec.describe "Api::V1::Simulation", type: :request do
       expect(response.parsed_body["running"]).to be(true)
     end
 
+    it "enqueues a QuestTickWorker" do
+      expect { post "/api/v1/simulation/start" }.to change(QuestTickWorker.jobs, :size).by(1)
+    end
+
     it "is idempotent when already running" do
       config = SimulationConfig.current
       config.update!(running: true)
-      post "/api/v1/simulation/start"
+      expect { post "/api/v1/simulation/start" }.not_to change(QuestTickWorker.jobs, :size)
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["running"]).to be(true)
     end
@@ -68,10 +79,11 @@ RSpec.describe "Api::V1::Simulation", type: :request do
       expect(response.parsed_body["mode"]).to eq("random")
     end
 
-    it "switches to campaign mode" do
-      SimulationConfig.current.update!(mode: "random")
+    it "switches to campaign mode and resets campaign_position" do
+      SimulationConfig.current.update!(mode: "random", campaign_position: 5)
       post "/api/v1/simulation/mode", params: { mode: "campaign" }
       expect(response.parsed_body["mode"]).to eq("campaign")
+      expect(response.parsed_body["campaign_position"]).to eq(0)
     end
 
     it "returns 422 for invalid mode" do
@@ -88,11 +100,41 @@ RSpec.describe "Api::V1::Simulation", type: :request do
 
     it "resets simulation state" do
       config = SimulationConfig.current
-      config.update!(running: true, mode: "random", campaign_position: 5)
+      config.update!(running: true, mode: "random", campaign_position: 5, tick_count: 100)
       post "/api/v1/simulation/reset", params: { confirm: true }
-      expect(response.parsed_body["running"]).to be(false)
-      expect(response.parsed_body["mode"]).to eq("campaign")
-      expect(response.parsed_body["campaign_position"]).to eq(0)
+      body = response.parsed_body
+      expect(body["running"]).to be(false)
+      expect(body["mode"]).to eq("campaign")
+      expect(body["campaign_position"]).to eq(0)
+      expect(body["tick_count"]).to eq(0)
+    end
+
+    it "resets all characters to idle" do
+      char = create(:character, status: :on_quest)
+      post "/api/v1/simulation/reset", params: { confirm: true }
+      expect(char.reload.status).to eq("idle")
+    end
+
+    it "resets campaign quests to pending" do
+      quest = create(:quest, quest_type: :campaign, status: :completed, progress: 1.0, attempts: 2)
+      post "/api/v1/simulation/reset", params: { confirm: true }
+      quest.reload
+      expect(quest.status).to eq("pending")
+      expect(quest.progress.to_f).to eq(0.0)
+      expect(quest.attempts).to eq(0)
+    end
+
+    it "deletes random quests" do
+      create(:quest, quest_type: :random)
+      expect { post "/api/v1/simulation/reset", params: { confirm: true } }
+        .to change { Quest.where(quest_type: :random).count }.to(0)
+    end
+
+    it "clears all quest events" do
+      quest = create(:quest)
+      create(:quest_event, quest: quest)
+      expect { post "/api/v1/simulation/reset", params: { confirm: true } }
+        .to change(QuestEvent, :count).to(0)
     end
 
     it "returns 422 without confirm" do

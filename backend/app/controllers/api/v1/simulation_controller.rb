@@ -5,13 +5,19 @@ module Api
     class SimulationController < ApplicationController
       # GET /api/v1/simulation/status
       def status
-        render json: SimulationConfig.current
+        config = SimulationConfig.current
+        render json: config.as_json.merge(
+          "tick_count" => config.tick_count
+        )
       end
 
       # POST /api/v1/simulation/start
       def start
         config = SimulationConfig.current
-        config.update!(running: true) unless config.running?
+        unless config.running?
+          config.update!(running: true)
+          QuestTickWorker.perform_async
+        end
         render json: config
       end
 
@@ -31,7 +37,14 @@ module Api
         end
 
         config = SimulationConfig.current
-        config.update!(mode: new_mode)
+
+        if new_mode == "campaign"
+          # Switching to campaign resets to beginning
+          config.update!(mode: new_mode, campaign_position: 0)
+        else
+          config.update!(mode: new_mode)
+        end
+
         render json: config
       end
 
@@ -42,13 +55,32 @@ module Api
                         status: :unprocessable_entity
         end
 
-        config = SimulationConfig.current
-        config.update!(
-          running: false,
-          mode: "campaign",
-          campaign_position: 0
-        )
-        render json: config
+        ActiveRecord::Base.transaction do
+          # Reset all characters to idle
+          Character.where.not(status: :idle).update_all(status: "idle")
+
+          # Reset all quests
+          Quest.where(quest_type: :random).destroy_all
+          Quest.where(quest_type: :campaign).update_all(
+            status: "pending",
+            progress: 0.0,
+            attempts: 0
+          )
+
+          # Clear all events
+          QuestEvent.delete_all
+
+          # Reset config
+          config = SimulationConfig.current
+          config.update!(
+            running: false,
+            mode: "campaign",
+            campaign_position: 0,
+            tick_count: 0
+          )
+        end
+
+        render json: SimulationConfig.current
       end
     end
   end

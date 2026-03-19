@@ -6,10 +6,9 @@
 #     class: MyWorker      # worker class name
 #     queue: default       # queue name (optional)
 #     args:                # arguments (optional)
-#
-# Example (uncomment to enable):
-# test_job_hourly:
-#   cron: "0 * * * *"
-#   class: TestJob
-#   queue: default
-#   description: "Smoke-test job that runs hourly"
+
+quest_tick:
+  cron: "* * * * *"
+  class: QuestTickWorker
+  queue: default
+  description: "Advances quest progress every minute when simulation is running"

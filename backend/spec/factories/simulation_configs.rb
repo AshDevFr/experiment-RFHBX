@@ -8,6 +8,7 @@ FactoryBot.define do
     progress_min { 0.01 }
     progress_max { 0.1 }
     campaign_position { 0 }
+    tick_count { 0 }
 
     trait :running do
       running { true }
