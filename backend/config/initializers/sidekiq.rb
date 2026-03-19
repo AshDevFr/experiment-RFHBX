@@ -33,10 +33,12 @@ redis_url = ENV.fetch("REDIS_URL", "redis://localhost:6379/0")
 Sidekiq.configure_server do |config|
   config.redis = { url: redis_url }
 
-  # Load sidekiq-cron schedule from config file (if present)
+  # Load sidekiq-cron schedule from config file (if present).
+  # ERB is evaluated first so cron expressions can reference ENV vars.
   cron_schedule_file = Rails.root.join("config/sidekiq_cron.yml")
   if File.exist?(cron_schedule_file)
-    Sidekiq::Cron::Job.load_from_hash(YAML.load_file(cron_schedule_file) || {})
+    rendered = ERB.new(File.read(cron_schedule_file)).result
+    Sidekiq::Cron::Job.load_from_hash(YAML.safe_load(rendered) || {})
   end
 end
 
