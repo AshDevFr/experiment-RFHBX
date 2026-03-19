@@ -8,6 +8,14 @@ Rails.application.routes.draw do
   # rswag-api engine (serves swagger files from swagger/)
   mount Rswag::Api::Engine => "/api-docs"
 
+  # GraphQL endpoint
+  post "/graphql", to: "graphql#execute"
+
+  # GraphiQL playground (development only)
+  if Rails.env.development?
+    mount GraphiQL::Rails::Engine, at: "/graphiql", graphql_path: "/graphql"
+  end
+
   namespace :api do
     get "health", to: "health#show"
 

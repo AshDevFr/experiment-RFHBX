@@ -11,6 +11,11 @@ gem "rack-cors"
 gem "bootsnap", require: false
 gem "tzinfo-data", platforms: %i[windows jruby]
 gem "rswag-api"
+gem "graphql", "~> 2.4"
+
+group :development do
+  gem "graphiql-rails"
+end
 
 group :development, :test do
   gem "debug", platforms: %i[mri windows]
