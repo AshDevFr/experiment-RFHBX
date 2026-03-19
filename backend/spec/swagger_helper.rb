@@ -302,12 +302,11 @@ RSpec.configure do |config|
 
           QueuedResponse: {
             type: :object,
-            description: "Acknowledgement that an async message was dispatched",
+            description: "Acknowledgement that a message was enqueued to SQS",
             properties: {
-              status: { type: :string, example: "queued" },
-              message: { type: :string, example: "Palantir message dispatched" }
+              queued: { type: :boolean, example: true }
             },
-            required: %w[status message]
+            required: %w[queued]
           },
 
           HealthStatus: {

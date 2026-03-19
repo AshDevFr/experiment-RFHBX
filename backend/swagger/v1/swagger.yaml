@@ -514,17 +514,13 @@ components:
       - status
     QueuedResponse:
       type: object
-      description: Acknowledgement that an async message was dispatched
+      description: Acknowledgement that a message was enqueued to SQS
       properties:
-        status:
-          type: string
-          example: queued
-        message:
-          type: string
-          example: Palantir message dispatched
+        queued:
+          type: boolean
+          example: true
       required:
-      - status
-      - message
+      - queued
     HealthStatus:
       type: object
       description: API health check response
@@ -929,7 +925,7 @@ paths:
       - Palantir
       operationId: sendPalantirMessage
       description: Dispatches an asynchronous message via the Palantir (the seeing-stone).
-        The message is queued for background processing.
+        The message is enqueued to SQS (via Shoryuken) for background processing.
       parameters: []
       responses:
         '202':

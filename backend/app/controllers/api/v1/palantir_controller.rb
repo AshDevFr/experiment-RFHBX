@@ -10,8 +10,8 @@ module Api
           return render json: { error: "Message is required" }, status: :unprocessable_entity
         end
 
-        PalantirJob.perform_later(message)
-        render json: { status: "queued", message: "Palantir message dispatched" }, status: :accepted
+        PalantirWorker.perform_async({ "message" => message }.to_json)
+        render json: { queued: true }, status: :accepted
       end
     end
   end

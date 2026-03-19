@@ -10,7 +10,7 @@ RSpec.describe "Palantir", type: :request do
       consumes "application/json"
       produces "application/json"
       description "Dispatches an asynchronous message via the Palantir (the seeing-stone). " \
-                  "The message is queued for background processing."
+                  "The message is enqueued to SQS (via Shoryuken) for background processing."
 
       parameter name: :body, in: :body, required: true, schema: {
         type: :object,
@@ -27,6 +27,7 @@ RSpec.describe "Palantir", type: :request do
       response "202", "message queued" do
         schema "$ref" => "#/components/schemas/QueuedResponse"
         let(:body) { { message: "Fly, you fools!" } }
+        before { allow(PalantirWorker).to receive(:perform_async) }
         run_test!
       end
 

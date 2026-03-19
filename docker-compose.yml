@@ -26,6 +26,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # ElasticMQ — local SQS-compatible service (no real AWS required)
+  # Access the management UI at http://localhost:9325
+  # SQS endpoint: http://localhost:9324 (also accessible as http://elasticmq:9324 within Docker)
+  elasticmq:
+    image: softwaremill/elasticmq-native
+    ports:
+      - "9324:9324"  # SQS-compatible API
+      - "9325:9325"  # Management UI
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9325/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -43,13 +59,51 @@ services:
       DATABASE_USER: ${DATABASE_USER:-postgres}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
       REDIS_URL: redis://redis:6379/0
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/palantir-queue
+      SQS_QUEUE_NAME: palantir-queue
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      elasticmq:
+        condition: service_healthy
     stdin_open: true
     tty: true
+
+  # Shoryuken worker — processes SQS messages from the palantir-queue
+  # Run separately: docker compose up shoryuken
+  shoryuken:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: bundle exec shoryuken -r ./config/environment.rb -q palantir-queue
+    volumes:
+      - ./backend:/app
+      - backend_bundle:/usr/local/bundle
+    env_file: .env
+    environment:
+      RAILS_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
+      REDIS_URL: redis://redis:6379/0
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/palantir-queue
+      SQS_QUEUE_NAME: palantir-queue
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticmq:
+        condition: service_healthy
 
   frontend:
     build:
