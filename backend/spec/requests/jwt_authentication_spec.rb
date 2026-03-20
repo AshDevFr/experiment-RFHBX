@@ -17,12 +17,6 @@ RSpec.describe "JWT Authentication", :skip_auth, type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "extracts principal claims from the token" do
-      get protected_path, headers: { "Authorization" => "Bearer #{valid_token}" }
-
-      expect(response).to have_http_status(:ok)
-    end
-
     it "accepts tokens with custom claims" do
       token = JwtTestHelper.generate_token(
         "sub" => "aragorn-42",
@@ -37,22 +31,22 @@ RSpec.describe "JWT Authentication", :skip_auth, type: :request do
   end
 
   describe "expired token" do
-    it "returns 401 with error message" do
+    it "returns 401 with error body" do
       get protected_path, headers: { "Authorization" => "Bearer #{expired_token}" }
 
       expect(response).to have_http_status(:unauthorized)
       body = JSON.parse(response.body)
-      expect(body["error"]).to include("expired")
+      expect(body["error"]).to eq("unauthorized")
     end
   end
 
   describe "tampered token" do
-    it "returns 401 with error message" do
+    it "returns 401 with error body" do
       get protected_path, headers: { "Authorization" => "Bearer #{tampered_token}" }
 
       expect(response).to have_http_status(:unauthorized)
       body = JSON.parse(response.body)
-      expect(body["error"]).to be_present
+      expect(body["error"]).to eq("unauthorized")
     end
   end
 
@@ -62,7 +56,7 @@ RSpec.describe "JWT Authentication", :skip_auth, type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       body = JSON.parse(response.body)
-      expect(body["error"]).to include("Missing")
+      expect(body["error"]).to eq("unauthorized")
     end
 
     it "returns 401 when Authorization header is not Bearer" do
@@ -70,19 +64,29 @@ RSpec.describe "JWT Authentication", :skip_auth, type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       body = JSON.parse(response.body)
-      expect(body["error"]).to include("Missing")
+      expect(body["error"]).to eq("unauthorized")
     end
 
-    it "returns 401 when Bearer token is empty" do
+    it "returns 401 when Bearer token value is empty" do
       get protected_path, headers: { "Authorization" => "Bearer " }
 
       expect(response).to have_http_status(:unauthorized)
+      body = JSON.parse(response.body)
+      expect(body["error"]).to eq("unauthorized")
     end
   end
 
   describe "unprotected routes" do
     it "health check is accessible without a token" do
       get "/api/health"
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["status"]).to eq("ok")
+    end
+
+    it "/api/up is accessible without a token" do
+      get "/api/up"
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
@@ -98,7 +102,7 @@ RSpec.describe "JWT Authentication", :skip_auth, type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       body = JSON.parse(response.body)
-      expect(body["error"]).to be_present
+      expect(body["error"]).to eq("unauthorized")
     end
   end
 
@@ -110,7 +114,7 @@ RSpec.describe "JWT Authentication", :skip_auth, type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       body = JSON.parse(response.body)
-      expect(body["error"]).to be_present
+      expect(body["error"]).to eq("unauthorized")
     end
   end
 end
