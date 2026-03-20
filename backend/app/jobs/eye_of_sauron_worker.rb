@@ -91,9 +91,13 @@ class EyeOfSauronWorker
     (regional.any? ? regional : active_quests).max_by(&:danger_level)
   end
 
-  # Phase 5 WebSocket broadcast stub — no-op for now.
-  # Will be implemented in Phase 5 with ActionCable.
-  # Example: ActionCable.server.broadcast("sauron_gaze", { region: region, threat_level: threat_level })
+  # Broadcast the Sauron gaze event to all connected clients via Action Cable.
   def broadcast_sauron_gaze(region:, threat_level:)
+    ActionCable.server.broadcast("sauron_gaze", {
+      region: region,
+      threat_level: threat_level,
+      message: format(GAZE_MESSAGES.sample, region: region),
+      watched_at: Time.current.iso8601
+    })
   end
 end
