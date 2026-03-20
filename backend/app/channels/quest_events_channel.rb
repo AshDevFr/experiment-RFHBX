@@ -12,6 +12,8 @@
 # manages stream subscriptions.
 class QuestEventsChannel < ApplicationCable::Channel
   def subscribed
+    reject unless current_principal.present?
+
     if quest_id.present?
       stream_from "quest_events:#{quest_id}"
     else

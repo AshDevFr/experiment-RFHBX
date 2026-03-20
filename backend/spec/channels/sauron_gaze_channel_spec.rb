@@ -3,16 +3,34 @@
 require "rails_helper"
 
 RSpec.describe SauronGazeChannel, type: :channel do
-  describe "#subscribed" do
-    it "successfully subscribes to the sauron_gaze stream" do
-      subscribe
+  let(:principal) { Principal.new("sub" => "user-123", "email" => "frodo@shire.example.com", "roles" => []) }
 
-      expect(subscription).to be_confirmed
-      expect(subscription).to have_stream_from("sauron_gaze")
+  describe "#subscribed" do
+    context "when authenticated" do
+      before { stub_connection current_principal: principal }
+
+      it "successfully subscribes to the sauron_gaze stream" do
+        subscribe
+
+        expect(subscription).to be_confirmed
+        expect(subscription).to have_stream_from("sauron_gaze")
+      end
+    end
+
+    context "when unauthenticated (no current_principal)" do
+      before { stub_connection current_principal: nil }
+
+      it "rejects the subscription" do
+        subscribe
+
+        expect(subscription).to be_rejected
+      end
     end
   end
 
   describe "#unsubscribed" do
+    before { stub_connection current_principal: principal }
+
     it "disconnects cleanly" do
       subscribe
       expect { subscription.unsubscribe_from_channel }.not_to raise_error

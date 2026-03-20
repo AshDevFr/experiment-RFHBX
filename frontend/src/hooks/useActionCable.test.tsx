@@ -19,6 +19,18 @@ vi.mock('@rails/actioncable', () => ({
   createConsumer: mockCreateConsumer,
 }));
 
+// ---------------------------------------------------------------------------
+// Mock useAuth from AuthProvider so tests control the token.
+// ---------------------------------------------------------------------------
+const { mockGetAccessToken } = vi.hoisted(() => {
+  const mockGetAccessToken = vi.fn<() => string | null>(() => null);
+  return { mockGetAccessToken };
+});
+
+vi.mock('../auth/AuthProvider', () => ({
+  useAuth: () => ({ getAccessToken: mockGetAccessToken }),
+}));
+
 function wrapper({ children }: { children: ReactNode }) {
   return <ActionCableProvider>{children}</ActionCableProvider>;
 }
@@ -26,16 +38,35 @@ function wrapper({ children }: { children: ReactNode }) {
 describe('ActionCableProvider / useActionCable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetAccessToken.mockReturnValue(null);
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('creates a consumer with the cable URL on mount', () => {
+  it('creates a consumer with the base cable URL when no token is present', () => {
+    mockGetAccessToken.mockReturnValue(null);
     renderHook(() => useActionCable(), { wrapper });
     expect(mockCreateConsumer).toHaveBeenCalledOnce();
     expect(mockCreateConsumer).toHaveBeenCalledWith('ws://localhost:3000/cable');
+  });
+
+  it('includes the token as a query param in the consumer URL', () => {
+    mockGetAccessToken.mockReturnValue('my-jwt-token');
+    renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledOnce();
+    expect(mockCreateConsumer).toHaveBeenCalledWith(
+      'ws://localhost:3000/cable?token=my-jwt-token',
+    );
+  });
+
+  it('URL-encodes the token', () => {
+    mockGetAccessToken.mockReturnValue('token+with/special=chars');
+    renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledWith(
+      expect.stringContaining('token=token%2Bwith%2Fspecial%3Dchars'),
+    );
   });
 
   it('returns the consumer instance from the hook', () => {
@@ -49,7 +80,8 @@ describe('ActionCableProvider / useActionCable', () => {
     expect(mockDisconnect).toHaveBeenCalledOnce();
   });
 
-  it('reuses the same consumer within a single provider', () => {
+  it('reuses the same consumer within a single provider when token is unchanged', () => {
+    mockGetAccessToken.mockReturnValue('stable-token');
     // Two hooks rendered inside the same provider tree share the same consumer.
     const { result } = renderHook(() => ({ a: useActionCable(), b: useActionCable() }), {
       wrapper,
@@ -67,8 +99,6 @@ describe('ActionCableProvider / useActionCable', () => {
 
   it('creates exactly one consumer on mount (no duplicates during initialisation)', () => {
     renderHook(() => useActionCable(), { wrapper });
-    // Even though the guard runs in the render body, createConsumer must only
-    // ever be called once per mount cycle.
     expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
   });
 
@@ -84,6 +114,7 @@ describe('ActionCableProvider / useActionCable', () => {
     // Second mount — the ref was cleared on unmount so a fresh consumer must
     // be created, not the stale disconnected one.
     vi.clearAllMocks();
+    mockGetAccessToken.mockReturnValue(null);
     renderHook(() => useActionCable(), { wrapper });
     expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
     // The previous consumer is already disconnected; the new one is not yet.
@@ -92,22 +123,42 @@ describe('ActionCableProvider / useActionCable', () => {
 
   it('never has two live consumers at the same time (no concurrent duplicates)', () => {
     // Mount → disconnect (simulates StrictMode cleanup) → remount.
-    // At no point should there be two un-disconnected consumers alive.
     const { unmount: unmount1 } = renderHook(() => useActionCable(), { wrapper });
     expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
     expect(mockDisconnect).toHaveBeenCalledTimes(0);
 
-    // Simulate the StrictMode simulated unmount of the first effect.
     unmount1();
     expect(mockDisconnect).toHaveBeenCalledTimes(1);
 
     // Remount: only one new consumer is created — not two.
     vi.clearAllMocks();
+    mockGetAccessToken.mockReturnValue(null);
     const { unmount: unmount2 } = renderHook(() => useActionCable(), { wrapper });
     expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
-    expect(mockDisconnect).toHaveBeenCalledTimes(0); // new consumer still live
+    expect(mockDisconnect).toHaveBeenCalledTimes(0);
 
     unmount2();
     expect(mockDisconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('disconnects old consumer and creates a new one when token changes', () => {
+    // First render with token A.
+    mockGetAccessToken.mockReturnValue('token-a');
+    const { rerender } = renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+    expect(mockCreateConsumer).toHaveBeenCalledWith(
+      'ws://localhost:3000/cable?token=token-a',
+    );
+
+    // Token changes to B — provider re-renders.
+    vi.clearAllMocks();
+    mockGetAccessToken.mockReturnValue('token-b');
+    rerender();
+
+    expect(mockDisconnect).toHaveBeenCalledTimes(1);
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+    expect(mockCreateConsumer).toHaveBeenCalledWith(
+      'ws://localhost:3000/cable?token=token-b',
+    );
   });
 });

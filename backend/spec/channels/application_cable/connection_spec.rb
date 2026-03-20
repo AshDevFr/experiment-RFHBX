@@ -4,30 +4,59 @@ require "rails_helper"
 
 RSpec.describe ApplicationCable::Connection, type: :channel do
   describe "connect" do
-    it "successfully connects and assigns a connection_identifier" do
-      connect "/cable"
+    context "with a valid JWT in the query param" do
+      it "successfully connects and sets current_principal" do
+        token = JwtTestHelper.generate_token
+        connect "/cable?token=#{token}"
 
-      expect(connection.connection_identifier).to be_present
-      expect(connection.connection_identifier).to match(/\A[0-9a-f-]{36}\z/)
+        expect(connection.current_principal).to be_present
+        expect(connection.current_principal).to be_a(Principal)
+        expect(connection.current_principal.sub).to eq("user-123")
+      end
     end
 
-    it "assigns a unique identifier per connection" do
-      connect "/cable"
-      first_id = connection.connection_identifier
+    context "with a valid JWT in the Authorization header" do
+      it "successfully connects and sets current_principal" do
+        token = JwtTestHelper.generate_token
+        connect "/cable", headers: { "Authorization" => "Bearer #{token}" }
 
-      # Disconnect and reconnect to get a new identifier
-      disconnect
+        expect(connection.current_principal).to be_present
+        expect(connection.current_principal).to be_a(Principal)
+        expect(connection.current_principal.sub).to eq("user-123")
+      end
+    end
 
-      connect "/cable"
-      second_id = connection.connection_identifier
+    context "with no token" do
+      it "rejects the connection" do
+        expect { connect "/cable" }.to have_rejected_connection
+      end
+    end
 
-      expect(first_id).not_to eq(second_id)
+    context "with an expired token" do
+      it "rejects the connection" do
+        token = JwtTestHelper.generate_expired_token
+        expect { connect "/cable?token=#{token}" }.to have_rejected_connection
+      end
+    end
+
+    context "with a tampered/invalid token" do
+      it "rejects the connection" do
+        token = JwtTestHelper.generate_tampered_token
+        expect { connect "/cable?token=#{token}" }.to have_rejected_connection
+      end
+    end
+
+    context "with a malformed token string" do
+      it "rejects the connection" do
+        expect { connect "/cable?token=not-a-valid-jwt" }.to have_rejected_connection
+      end
     end
   end
 
   describe "disconnect" do
-    it "closes the connection cleanly" do
-      connect "/cable"
+    it "closes an authenticated connection cleanly" do
+      token = JwtTestHelper.generate_token
+      connect "/cable?token=#{token}"
       expect { disconnect }.not_to raise_error
     end
   end

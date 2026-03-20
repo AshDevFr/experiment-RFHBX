@@ -23,6 +23,11 @@ vi.mock('@rails/actioncable', () => ({
   createConsumer: vi.fn(() => mockConsumer),
 }));
 
+// Mock useAuth so ActionCableProvider can render without a real AuthProvider.
+vi.mock('../auth/AuthProvider', () => ({
+  useAuth: () => ({ getAccessToken: () => null }),
+}));
+
 function wrapper({ children }: { children: ReactNode }) {
   return <ActionCableProvider>{children}</ActionCableProvider>;
 }
