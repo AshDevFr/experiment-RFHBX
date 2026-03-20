@@ -13,11 +13,10 @@ Rails.application.routes.draw do
   # rswag-api engine (serves swagger files from swagger/)
   mount Rswag::Api::Engine => "/api-docs"
 
-  # Sidekiq Web UI — protected behind JWT authentication.
-  # Only requests bearing a valid Bearer token may access /admin/sidekiq.
-  authenticate(:api, ->(principal) { principal.present? }) do
-    mount Sidekiq::Web => "/admin/sidekiq"
-  end
+  # Sidekiq Web UI — protected behind a Rack constraint that validates the
+  # Authorization: Bearer <token> header using the same JWT logic as the API.
+  # Unauthenticated requests receive a 404 (no route match) from Rails.
+  mount Sidekiq::Web => "/admin/sidekiq", constraints: SidekiqAuthConstraint.new
 
   # GraphQL endpoint
   post "/graphql", to: "graphql#execute"
