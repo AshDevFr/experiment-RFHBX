@@ -1,0 +1,51 @@
+import { useEffect, useRef, useState } from 'react';
+import { useActionCable } from './useActionCable';
+import type { ConnectionStatus } from './useQuestEventsChannel';
+
+export interface SauronGaze {
+  intensity: number;
+  target?: string;
+  [key: string]: unknown;
+}
+
+export interface UseSauronGazeChannelResult {
+  latestGaze: SauronGaze | null;
+  connectionStatus: ConnectionStatus;
+}
+
+/**
+ * Subscribes to the SauronGazeChannel (sauron_gaze stream).
+ */
+export function useSauronGazeChannel(): UseSauronGazeChannelResult {
+  const consumer = useActionCable();
+  const [latestGaze, setLatestGaze] = useState<SauronGaze | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const subscriptionRef = useRef<ReturnType<typeof consumer.subscriptions.create> | null>(null);
+
+  useEffect(() => {
+    subscriptionRef.current = consumer.subscriptions.create(
+      { channel: 'SauronGazeChannel' },
+      {
+        connected() {
+          setConnectionStatus('connected');
+        },
+        disconnected() {
+          setConnectionStatus('disconnected');
+        },
+        rejected() {
+          setConnectionStatus('disconnected');
+        },
+        received(data: SauronGaze) {
+          setLatestGaze(data);
+        },
+      },
+    );
+
+    return () => {
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
+    };
+  }, [consumer]);
+
+  return { latestGaze, connectionStatus };
+}

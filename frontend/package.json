@@ -19,6 +19,7 @@
   "dependencies": {
     "@mantine/core": "^8.3.0",
     "@mantine/hooks": "^8.3.0",
+    "@rails/actioncable": "^8.0.0",
     "@tanstack/react-router": "^1.114.0",
     "axios": "^1.8.0",
     "es-toolkit": "^1.31.0",
