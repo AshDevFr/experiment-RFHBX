@@ -57,7 +57,7 @@ describe('useSauronGazeChannel', () => {
     const { result } = renderHook(() => useSauronGazeChannel(), { wrapper });
     expect(result.current.latestGaze).toBeNull();
 
-    const gaze = { intensity: 0.8, target: 'fellowship' };
+    const gaze = { region: 'Mordor', threat_level: 8, message: 'The Eye turns toward Mordor', watched_at: '2026-03-20T12:00:00Z' };
     act(() => capturedCallbacks.received?.(gaze));
     expect(result.current.latestGaze).toEqual(gaze);
   });

@@ -3,9 +3,10 @@ import { useActionCable } from './useActionCable';
 import type { ConnectionStatus } from './useQuestEventsChannel';
 
 export interface SauronGaze {
-  intensity: number;
-  target?: string;
-  [key: string]: unknown;
+  region: string;
+  threat_level: number;
+  message: string;
+  watched_at: string;
 }
 
 export interface UseSauronGazeChannelResult {
