@@ -3,6 +3,9 @@
 require "sidekiq/web"
 
 Rails.application.routes.draw do
+  # Action Cable WebSocket endpoint
+  mount ActionCable.server => "/cable"
+
   # OpenAPI spec (JSON) and Scalar interactive docs
   get "/api/docs",      to: "api/docs#ui",   format: false
   get "/api/docs.json", to: "api/docs#spec",  format: false
