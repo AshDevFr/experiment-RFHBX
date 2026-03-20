@@ -64,4 +64,50 @@ describe('ActionCableProvider / useActionCable', () => {
       renderHook(() => useActionCable());
     }).toThrow('useActionCable must be used inside <ActionCableProvider>');
   });
+
+  it('creates exactly one consumer on mount (no duplicates during initialisation)', () => {
+    renderHook(() => useActionCable(), { wrapper });
+    // Even though the guard runs in the render body, createConsumer must only
+    // ever be called once per mount cycle.
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+  });
+
+  it('after unmount the consumer is disconnected; remount creates a new consumer (StrictMode-safe)', () => {
+    // First mount
+    const { unmount } = renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+
+    // Unmount — simulates StrictMode cleanup or a genuine provider teardown.
+    unmount();
+    expect(mockDisconnect).toHaveBeenCalledTimes(1);
+
+    // Second mount — the ref was cleared on unmount so a fresh consumer must
+    // be created, not the stale disconnected one.
+    vi.clearAllMocks();
+    renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+    // The previous consumer is already disconnected; the new one is not yet.
+    expect(mockDisconnect).not.toHaveBeenCalled();
+  });
+
+  it('never has two live consumers at the same time (no concurrent duplicates)', () => {
+    // Mount → disconnect (simulates StrictMode cleanup) → remount.
+    // At no point should there be two un-disconnected consumers alive.
+    const { unmount: unmount1 } = renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+    expect(mockDisconnect).toHaveBeenCalledTimes(0);
+
+    // Simulate the StrictMode simulated unmount of the first effect.
+    unmount1();
+    expect(mockDisconnect).toHaveBeenCalledTimes(1);
+
+    // Remount: only one new consumer is created — not two.
+    vi.clearAllMocks();
+    const { unmount: unmount2 } = renderHook(() => useActionCable(), { wrapper });
+    expect(mockCreateConsumer).toHaveBeenCalledTimes(1);
+    expect(mockDisconnect).toHaveBeenCalledTimes(0); // new consumer still live
+
+    unmount2();
+    expect(mockDisconnect).toHaveBeenCalledTimes(1);
+  });
 });

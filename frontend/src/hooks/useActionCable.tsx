@@ -17,9 +17,13 @@ export function ActionCableProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const c = consumerRef.current;
-    // Disconnect cleanly when the provider unmounts (page navigation / unmount).
+    // Disconnect cleanly and clear the ref when the provider unmounts.
+    // Clearing the ref is critical for React StrictMode: after the simulated
+    // cleanup the next render's `if (!consumerRef.current)` guard will create
+    // a fresh consumer instead of reusing the stale, disconnected instance.
     return () => {
       c?.disconnect();
+      consumerRef.current = null;
     };
   }, []);
 
