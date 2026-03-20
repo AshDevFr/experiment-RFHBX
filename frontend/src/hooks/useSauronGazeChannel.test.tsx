@@ -1,6 +1,6 @@
-import { cleanup, renderHook, act } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionCableProvider } from './useActionCable';
 import { useSauronGazeChannel } from './useSauronGazeChannel';
 
@@ -49,7 +49,7 @@ describe('useSauronGazeChannel', () => {
   it('starts in connecting status and transitions to connected', () => {
     const { result } = renderHook(() => useSauronGazeChannel(), { wrapper });
     expect(result.current.connectionStatus).toBe('connecting');
-    act(() => capturedCallbacks['connected']?.());
+    act(() => capturedCallbacks.connected?.());
     expect(result.current.connectionStatus).toBe('connected');
   });
 
@@ -58,13 +58,13 @@ describe('useSauronGazeChannel', () => {
     expect(result.current.latestGaze).toBeNull();
 
     const gaze = { intensity: 0.8, target: 'fellowship' };
-    act(() => capturedCallbacks['received']?.(gaze));
+    act(() => capturedCallbacks.received?.(gaze));
     expect(result.current.latestGaze).toEqual(gaze);
   });
 
   it('sets status to disconnected when disconnected callback fires', () => {
     const { result } = renderHook(() => useSauronGazeChannel(), { wrapper });
-    act(() => capturedCallbacks['disconnected']?.());
+    act(() => capturedCallbacks.disconnected?.());
     expect(result.current.connectionStatus).toBe('disconnected');
   });
 

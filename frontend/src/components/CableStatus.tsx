@@ -20,12 +20,7 @@ const STATUS_CONFIG: Record<ConnectionStatus, { color: string; label: string }> 
 export function CableStatus({ status, size = 'sm' }: CableStatusProps) {
   const { color, label } = STATUS_CONFIG[status];
   return (
-    <Badge
-      color={color}
-      variant="filled"
-      size={size}
-      aria-label={`WebSocket status: ${status}`}
-    >
+    <Badge color={color} variant="filled" size={size} aria-label={`WebSocket status: ${status}`}>
       {label}
     </Badge>
   );
