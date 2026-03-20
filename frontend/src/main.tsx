@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@mantine/core/styles.css';
 import { routeTree } from './routeTree.gen';
+import { ActionCableProvider } from './hooks/useActionCable';
 import { useThemeStore } from './store/themeStore';
 import { theme } from './theme';
 
@@ -19,7 +20,9 @@ function AppRoot() {
   const colorScheme = useThemeStore((s) => s.colorScheme);
   return (
     <MantineProvider theme={theme} forceColorScheme={colorScheme}>
-      <RouterProvider router={router} />
+      <ActionCableProvider>
+        <RouterProvider router={router} />
+      </ActionCableProvider>
     </MantineProvider>
   );
 }
