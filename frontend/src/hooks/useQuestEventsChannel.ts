@@ -1,3 +1,4 @@
+import type { ChannelNameWithParams } from '@rails/actioncable';
 import { useEffect, useRef, useState } from 'react';
 import { useActionCable } from './useActionCable';
 
@@ -6,7 +7,8 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 're
 export interface QuestEvent {
   type: string;
   quest_id?: number;
-  [key: string]: unknown;
+  // biome-ignore lint/suspicious/noExplicitAny: mirrors Action Cable's BaseMixin.received signature
+  [key: string]: any;
 }
 
 export interface UseQuestEventsChannelResult {
@@ -25,7 +27,7 @@ export function useQuestEventsChannel(questId?: number): UseQuestEventsChannelRe
   const subscriptionRef = useRef<ReturnType<typeof consumer.subscriptions.create> | null>(null);
 
   useEffect(() => {
-    const params: Record<string, unknown> = { channel: 'QuestEventsChannel' };
+    const params: ChannelNameWithParams = { channel: 'QuestEventsChannel' };
     if (questId !== undefined) {
       params.quest_id = questId;
     }
