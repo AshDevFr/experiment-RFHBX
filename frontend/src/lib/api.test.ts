@@ -36,7 +36,7 @@ describe('Axios auth interceptor', () => {
     // Build a minimal config and run the interceptor.
     const config = {
       headers: axios.defaults.headers,
-    } as InternalAxiosRequestConfig;
+    } as unknown as InternalAxiosRequestConfig;
 
     // The interceptor is the first one registered on `api`; retrieve it.
     // biome-ignore lint/suspicious/noExplicitAny: test internals
