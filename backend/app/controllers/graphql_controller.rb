@@ -1,19 +1,16 @@
 # frozen_string_literal: true
 
 class GraphqlController < ApplicationController
-  # If accessing from outside this domain, nullify the session
-  # This allows for outside API access while preventing CSRF attacks,
-  # but you'll want to authenticate and authorize these requests in
-  # production.
-  # protect_from_forgery with: :null_session
+  # Skip JWT authentication for GraphQL introspection in development
+  # so the GraphiQL playground remains usable without a token.
+  skip_before_action :authenticate_request!, if: -> { Rails.env.development? && introspection_query? }
 
   def execute
     variables = prepare_variables(params[:variables])
     query = params[:query]
     operation_name = params[:operationName]
     context = {
-      # Query context goes here, for example:
-      # current_user: current_user,
+      current_principal: current_principal
     }
     result = ExperimentRfhbxSchema.execute(query, variables: variables, context: context, operation_name: operation_name)
     render json: result
@@ -24,6 +21,11 @@ class GraphqlController < ApplicationController
   end
 
   private
+
+  def introspection_query?
+    query = params[:query].to_s
+    query.include?("__schema") || query.include?("__type")
+  end
 
   # Handle variables in form data, JSON body, or a blank value
   def prepare_variables(variables_param)

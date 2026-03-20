@@ -2,6 +2,8 @@
 
 module Api
   class HealthController < ApplicationController
+    skip_before_action :authenticate_request!
+
     # GET /api/health
     def show
       render json: {

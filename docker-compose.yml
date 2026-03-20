@@ -65,6 +65,13 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: dummy
       AWS_SECRET_ACCESS_KEY: dummy
+      # OIDC / JWT authentication (Phase 6.1)
+      # Point these at your OIDC provider (Keycloak, Auth0, Dex, etc.)
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_JWKS_CACHE_TTL: ${OIDC_JWKS_CACHE_TTL:-3600}
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,6 +106,12 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: dummy
       AWS_SECRET_ACCESS_KEY: dummy
+      # OIDC / JWT authentication (Phase 6.1)
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_JWKS_CACHE_TTL: ${OIDC_JWKS_CACHE_TTL:-3600}
     depends_on:
       postgres:
         condition: service_healthy
