@@ -1,6 +1,6 @@
-import { cleanup, renderHook, act } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionCableProvider } from './useActionCable';
 import { useQuestEventsChannel } from './useQuestEventsChannel';
 
@@ -57,7 +57,7 @@ describe('useQuestEventsChannel', () => {
   it('starts in connecting status and transitions to connected', () => {
     const { result } = renderHook(() => useQuestEventsChannel(), { wrapper });
     expect(result.current.connectionStatus).toBe('connecting');
-    act(() => capturedCallbacks['connected']?.());
+    act(() => capturedCallbacks.connected?.());
     expect(result.current.connectionStatus).toBe('connected');
   });
 
@@ -66,13 +66,13 @@ describe('useQuestEventsChannel', () => {
     expect(result.current.latestEvent).toBeNull();
 
     const event = { type: 'quest_started', quest_id: 1 };
-    act(() => capturedCallbacks['received']?.(event));
+    act(() => capturedCallbacks.received?.(event));
     expect(result.current.latestEvent).toEqual(event);
   });
 
   it('sets status to disconnected when disconnected callback fires', () => {
     const { result } = renderHook(() => useQuestEventsChannel(), { wrapper });
-    act(() => capturedCallbacks['disconnected']?.());
+    act(() => capturedCallbacks.disconnected?.());
     expect(result.current.connectionStatus).toBe('disconnected');
   });
 

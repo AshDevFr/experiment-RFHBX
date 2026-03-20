@@ -17,9 +17,11 @@ function CableStatusWidget() {
   // Action Cable exposes isOpen() / isActive() on the connection object.
   // We poll the status on each render; for a production app this could
   // be driven by a subscription's connected/disconnected callbacks instead.
-  const isOpen = connectionMonitor && typeof (connectionMonitor as { isOpen?: () => boolean }).isOpen === 'function'
-    ? (connectionMonitor as { isOpen: () => boolean }).isOpen()
-    : false;
+  const isOpen =
+    connectionMonitor &&
+    typeof (connectionMonitor as { isOpen?: () => boolean }).isOpen === 'function'
+      ? (connectionMonitor as { isOpen: () => boolean }).isOpen()
+      : false;
 
   // Only update if there's a meaningful difference; avoid an infinite loop by
   // not calling setState unconditionally during render.

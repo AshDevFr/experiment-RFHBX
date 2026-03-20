@@ -27,7 +27,7 @@ export function useQuestEventsChannel(questId?: number): UseQuestEventsChannelRe
   useEffect(() => {
     const params: Record<string, unknown> = { channel: 'QuestEventsChannel' };
     if (questId !== undefined) {
-      params['quest_id'] = questId;
+      params.quest_id = questId;
     }
 
     subscriptionRef.current = consumer.subscriptions.create(params, {

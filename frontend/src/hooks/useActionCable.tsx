@@ -1,11 +1,11 @@
 import { createConsumer } from '@rails/actioncable';
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useRef } from 'react';
 
 type Consumer = ReturnType<typeof createConsumer>;
 
 const ActionCableContext = createContext<Consumer | null>(null);
 
-const CABLE_URL = import.meta.env['VITE_CABLE_URL'] ?? 'ws://localhost:3000/cable';
+const CABLE_URL = import.meta.env.VITE_CABLE_URL ?? 'ws://localhost:3000/cable';
 
 /** Provides a single shared Action Cable consumer for the whole app. */
 export function ActionCableProvider({ children }: { children: ReactNode }) {

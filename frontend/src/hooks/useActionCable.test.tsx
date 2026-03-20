@@ -1,14 +1,19 @@
 import { cleanup, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionCableProvider, useActionCable } from './useActionCable';
 
 // ---------------------------------------------------------------------------
 // Mock @rails/actioncable
+// vi.hoisted ensures these variables are available inside the vi.mock factory,
+// which is hoisted to the top of the file by Vitest.
 // ---------------------------------------------------------------------------
-const mockDisconnect = vi.fn();
-const mockConsumer = { disconnect: mockDisconnect, subscriptions: { create: vi.fn() } };
-const mockCreateConsumer = vi.fn(() => mockConsumer);
+const { mockDisconnect, mockConsumer, mockCreateConsumer } = vi.hoisted(() => {
+  const mockDisconnect = vi.fn();
+  const mockConsumer = { disconnect: mockDisconnect, subscriptions: { create: vi.fn() } };
+  const mockCreateConsumer = vi.fn(() => mockConsumer);
+  return { mockDisconnect, mockConsumer, mockCreateConsumer };
+});
 
 vi.mock('@rails/actioncable', () => ({
   createConsumer: mockCreateConsumer,
@@ -44,12 +49,13 @@ describe('ActionCableProvider / useActionCable', () => {
     expect(mockDisconnect).toHaveBeenCalledOnce();
   });
 
-  it('reuses the same consumer across multiple hook calls', () => {
-    const { result: r1 } = renderHook(() => useActionCable(), { wrapper });
-    const { result: r2 } = renderHook(() => useActionCable(), { wrapper });
-    // Both hooks should see the same consumer instance from the same provider.
-    expect(r1.current).toBe(mockConsumer);
-    expect(r2.current).toBe(mockConsumer);
+  it('reuses the same consumer within a single provider', () => {
+    // Two hooks rendered inside the same provider tree share the same consumer.
+    const { result } = renderHook(() => ({ a: useActionCable(), b: useActionCable() }), {
+      wrapper,
+    });
+    expect(result.current.a).toBe(mockConsumer);
+    expect(result.current.b).toBe(mockConsumer);
     expect(mockCreateConsumer).toHaveBeenCalledOnce();
   });
 
