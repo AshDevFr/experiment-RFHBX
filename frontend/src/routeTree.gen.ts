@@ -4,10 +4,24 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as AuthCallbackImport } from './routes/auth.callback'
+import { Route as AuthSilentCallbackImport } from './routes/auth.silent-callback'
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthCallbackRoute = AuthCallbackImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthSilentCallbackRoute = AuthSilentCallbackImport.update({
+  id: '/auth/silent-callback',
+  path: '/auth/silent-callback',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -20,20 +34,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/silent-callback': {
+      id: '/auth/silent-callback'
+      path: '/auth/silent-callback'
+      fullPath: '/auth/silent-callback'
+      preLoaderRoute: typeof AuthSilentCallbackImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/silent-callback': typeof AuthSilentCallbackRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/silent-callback': typeof AuthSilentCallbackRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/silent-callback': typeof AuthSilentCallbackRoute
 }
 
 export interface FileRouteTypes {
@@ -45,10 +79,14 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthSilentCallbackRoute: typeof AuthSilentCallbackRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthSilentCallbackRoute: AuthSilentCallbackRoute,
 }
 
 export const routeTree = rootRoute.addChildren(rootRouteChildren)

@@ -3,6 +3,7 @@ import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@mantine/core/styles.css';
+import { AuthProvider } from './auth/AuthProvider';
 import { ActionCableProvider } from './hooks/useActionCable';
 import { routeTree } from './routeTree.gen';
 import { useThemeStore } from './store/themeStore';
@@ -20,9 +21,11 @@ function AppRoot() {
   const colorScheme = useThemeStore((s) => s.colorScheme);
   return (
     <MantineProvider theme={theme} forceColorScheme={colorScheme}>
-      <ActionCableProvider>
-        <RouterProvider router={router} />
-      </ActionCableProvider>
+      <AuthProvider>
+        <ActionCableProvider>
+          <RouterProvider router={router} />
+        </ActionCableProvider>
+      </AuthProvider>
     </MantineProvider>
   );
 }
