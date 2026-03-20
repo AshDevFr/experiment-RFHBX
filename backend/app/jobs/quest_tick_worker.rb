@@ -35,12 +35,14 @@ class QuestTickWorker
     quest.progress += increment
     quest.save!
 
-    QuestEvent.create!(
+    event = QuestEvent.create!(
       quest: quest,
       event_type: :progress,
       message: generate_progress_message(quest),
       data: { progress: quest.progress.to_f, increment: increment.to_f }
     )
+
+    QuestEventBroadcaster.broadcast(event)
 
     resolve_quest(quest, config) if quest.progress >= 1.0
   end
@@ -266,9 +268,9 @@ class QuestTickWorker
     "#{quest.title}: #{PROGRESS_MESSAGES.sample}"
   end
 
-  # Phase 5 ActionCable integration stub — no-op for now
+  # Broadcast the most recent quest event over Action Cable.
   def broadcast_quest_update(quest, event_type)
-    # Will be implemented in Phase 5 with ActionCable
-    # Example: ActionCable.server.broadcast("quest_#{quest.id}", { event: event_type, quest: quest })
+    event = quest.quest_events.order(created_at: :desc).first
+    QuestEventBroadcaster.broadcast(event) if event
   end
 end
