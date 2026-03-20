@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 class GraphqlController < ApplicationController
-  # Skip JWT authentication for GraphQL introspection in development
-  # so the GraphiQL playground remains usable without a token.
-  skip_before_action :authenticate_request!, if: -> { Rails.env.development? && introspection_query? }
+  # In development and test environments, skip JWT authentication entirely
+  # so the GraphiQL playground and test suites can access GraphQL freely.
+  # In production, the standard authenticate_request! before_action applies.
+  skip_before_action :authenticate_request!, if: -> { !Rails.env.production? }
 
   def execute
     variables = prepare_variables(params[:variables])

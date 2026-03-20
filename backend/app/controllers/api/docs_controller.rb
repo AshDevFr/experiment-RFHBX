@@ -4,6 +4,9 @@ require "yaml"
 
 module Api
   class DocsController < ApplicationController
+    # API docs are public — no authentication required
+    skip_before_action :authenticate_request!
+
     # GET /api/docs.json
     # Serves the OpenAPI spec as JSON
     def spec

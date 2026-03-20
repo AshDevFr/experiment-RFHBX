@@ -13,9 +13,11 @@ Rails.application.routes.draw do
   # rswag-api engine (serves swagger files from swagger/)
   mount Rswag::Api::Engine => "/api-docs"
 
-  # Sidekiq Web UI — session + basic-auth middleware configured in
-  # config/initializers/sidekiq.rb; full auth planned for Phase 6.
-  mount Sidekiq::Web => "/admin/sidekiq"
+  # Sidekiq Web UI — protected behind JWT authentication.
+  # Only requests bearing a valid Bearer token may access /admin/sidekiq.
+  authenticate(:api, ->(principal) { principal.present? }) do
+    mount Sidekiq::Web => "/admin/sidekiq"
+  end
 
   # GraphQL endpoint
   post "/graphql", to: "graphql#execute"
@@ -26,7 +28,9 @@ Rails.application.routes.draw do
   end
 
   namespace :api do
+    # Public health check endpoints — no authentication required
     get "health", to: "health#show"
+    get "up",     to: "health#show"
 
     namespace :v1 do
       resources :characters

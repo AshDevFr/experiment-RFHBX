@@ -25,21 +25,22 @@ module Authenticatable
   def authenticate_request!
     token = extract_bearer_token
     if token.nil?
-      render json: { error: "Missing authorization token" }, status: :unauthorized
+      render json: { error: "unauthorized" }, status: :unauthorized
       return
     end
 
     claims = decode_token(token)
     @current_principal = Principal.new(claims)
-  rescue JwtDecoder::DecodeError => e
-    render json: { error: e.message }, status: :unauthorized
+  rescue JwtDecoder::DecodeError
+    render json: { error: "unauthorized" }, status: :unauthorized
   end
 
   def extract_bearer_token
     header = request.headers["Authorization"]
     return nil unless header&.start_with?("Bearer ")
 
-    header.split(" ", 2).last
+    token = header.split(" ", 2).last
+    token.present? ? token : nil
   end
 
   def decode_token(token)
