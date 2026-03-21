@@ -26,9 +26,11 @@ export function requireAuth(auth: AuthContextValue | undefined, location: Parsed
   }
 
   if (!auth.isLoading && !auth.isAuthenticated) {
+    // searchStr is the serialised query string (e.g. "?foo=bar"); search is the
+    // parsed object.  We want the string form for the returnTo parameter.
     throw redirect({
       to: '/login',
-      search: { returnTo: location.pathname + location.search },
+      search: { returnTo: location.pathname + location.searchStr },
     });
   }
 }
