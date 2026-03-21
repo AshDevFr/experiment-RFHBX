@@ -29,8 +29,12 @@ function makeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   };
 }
 
-function makeLocation(pathname = '/quests', search = '') {
-  return { pathname, search, href: pathname + search } as Parameters<typeof requireAuth>[1];
+function makeLocation(pathname = '/quests', searchStr = '') {
+  // Cast through unknown — tests only need pathname + searchStr; other
+  // ParsedLocation fields (state, hash, etc.) are irrelevant here.
+  return { pathname, searchStr, search: {}, href: pathname + searchStr } as unknown as Parameters<
+    typeof requireAuth
+  >[1];
 }
 
 describe('requireAuth', () => {
