@@ -1,30 +1,95 @@
-import { ActionIcon, AppShell, Group, Text } from '@mantine/core';
-import { createRootRoute, Outlet } from '@tanstack/react-router';
+import { ActionIcon, AppShell, Burger, Group, NavLink, Stack, Text } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { createRootRouteWithContext, Link, Outlet, useRouterState } from '@tanstack/react-router';
+import type { AuthContextValue } from '../auth/AuthContext';
+import { useAuth } from '../auth/AuthProvider';
 import { CableStatus } from '../components/CableStatus';
 import { UserInfo } from '../components/UserInfo';
 import { useQuestEventsChannel } from '../hooks/useQuestEventsChannel';
 import { useThemeStore } from '../store/themeStore';
 
-/**
- * Uses the quest events channel subscription to derive a global cable
- * connection status indicator shown in the app header.
- */
+// ---------------------------------------------------------------------------
+// Router context — exposed to all route `beforeLoad` / `loader` hooks.
+// ---------------------------------------------------------------------------
+export interface RouterContext {
+  /** The current auth state. May be undefined on first render before context is wired. */
+  auth: AuthContextValue | undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Nav links definition — single source of truth for all Phase 7 pages.
+// ---------------------------------------------------------------------------
+const NAV_LINKS = [
+  { to: '/quests' as const, label: 'QUESTS' },
+  { to: '/fellowship' as const, label: 'FELLOWSHIP' },
+  { to: '/sauron' as const, label: 'SAURON' },
+];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function CableStatusWidget() {
   const { connectionStatus } = useQuestEventsChannel();
   return <CableStatus status={connectionStatus} />;
 }
 
+function AppNavLink({ to, label }: { to: string; label: string }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isActive = pathname === to || pathname.startsWith(`${to}/`);
+  return (
+    <NavLink
+      component={Link}
+      // @ts-expect-error — TanStack Router Link `to` prop passes through correctly
+      to={to}
+      label={label}
+      active={isActive}
+      styles={{
+        root: { textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.65rem' },
+      }}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Root layout
+// ---------------------------------------------------------------------------
+
 function RootLayout() {
   const colorScheme = useThemeStore((s) => s.colorScheme);
   const toggle = useThemeStore((s) => s.toggle);
+  const { isAuthenticated } = useAuth();
+  const [mobileNavOpen, { toggle: toggleMobileNav, close: closeMobileNav }] = useDisclosure(false);
+
+  const hasNav = isAuthenticated;
 
   return (
-    <AppShell header={{ height: 60 }} padding="md">
+    <AppShell
+      header={{ height: 60 }}
+      navbar={
+        hasNav
+          ? { width: 220, breakpoint: 'sm', collapsed: { mobile: !mobileNavOpen } }
+          : undefined
+      }
+      padding="md"
+    >
+      {/* ---- Header ---- */}
       <AppShell.Header>
         <Group justify="space-between" h="100%" px="md">
-          <Text fw={700} style={{ letterSpacing: '0.1em' }}>
-            MORDOR'S EDGE
-          </Text>
+          <Group>
+            {hasNav && (
+              <Burger
+                opened={mobileNavOpen}
+                onClick={toggleMobileNav}
+                hiddenFrom="sm"
+                size="sm"
+                aria-label="Toggle navigation"
+              />
+            )}
+            <Text fw={700} style={{ letterSpacing: '0.1em' }}>
+              MORDOR'S EDGE
+            </Text>
+          </Group>
           <Group>
             <CableStatusWidget />
             <UserInfo />
@@ -40,6 +105,19 @@ function RootLayout() {
           </Group>
         </Group>
       </AppShell.Header>
+
+      {/* ---- Sidebar (authenticated only) ---- */}
+      {hasNav && (
+        <AppShell.Navbar p="xs">
+          <Stack gap={4} onClick={closeMobileNav}>
+            {NAV_LINKS.map((link) => (
+              <AppNavLink key={link.to} to={link.to} label={link.label} />
+            ))}
+          </Stack>
+        </AppShell.Navbar>
+      )}
+
+      {/* ---- Main content ---- */}
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>
@@ -47,6 +125,6 @@ function RootLayout() {
   );
 }
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
 });

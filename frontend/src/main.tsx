@@ -3,18 +3,34 @@ import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@mantine/core/styles.css';
-import { AuthProvider } from './auth/AuthProvider';
+import type { AuthContextValue } from './auth/AuthContext';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { ActionCableProvider } from './hooks/useActionCable';
 import { routeTree } from './routeTree.gen';
 import { useThemeStore } from './store/themeStore';
 import { theme } from './theme';
 
-const router = createRouter({ routeTree });
+const router = createRouter({
+  routeTree,
+  context: {
+    // auth is populated at render time by RouterWithAuth below.
+    auth: undefined as AuthContextValue | undefined,
+  },
+});
 
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
+}
+
+/**
+ * Renders the RouterProvider with the current auth context injected.
+ * Must be rendered inside <AuthProvider> so useAuth() is available.
+ */
+function RouterWithAuth() {
+  const auth = useAuth();
+  return <RouterProvider router={router} context={{ auth }} />;
 }
 
 function AppRoot() {
@@ -23,7 +39,7 @@ function AppRoot() {
     <MantineProvider theme={theme} forceColorScheme={colorScheme}>
       <AuthProvider>
         <ActionCableProvider>
-          <RouterProvider router={router} />
+          <RouterWithAuth />
         </ActionCableProvider>
       </AuthProvider>
     </MantineProvider>

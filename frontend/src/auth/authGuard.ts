@@ -5,16 +5,11 @@ import type { AuthContextValue } from './AuthContext';
 /**
  * TanStack Router `beforeLoad` guard for protected routes.
  *
- * Usage:
- * ```ts
- * export const Route = createFileRoute('/protected')(
- *   createProtectedRoute({
- *     component: ProtectedPage,
- *   }),
- * );
- * ```
+ * Redirects unauthenticated users to `/login`, preserving the original
+ * destination in the `returnTo` search parameter so the login page can
+ * restore it after sign-in.
  *
- * Or inline:
+ * Usage (in a file-based route):
  * ```ts
  * export const Route = createFileRoute('/protected')({
  *   beforeLoad: ({ context, location }) =>
@@ -25,18 +20,15 @@ import type { AuthContextValue } from './AuthContext';
  */
 export function requireAuth(auth: AuthContextValue | undefined, location: ParsedLocation): void {
   if (!auth) {
-    // Auth context is not yet wired — bail out silently; the router will
-    // re-run beforeLoad once the context is available.
+    // Auth context is not yet wired — bail out silently; the _auth layout
+    // component will handle the redirect once auth resolves.
     return;
   }
 
   if (!auth.isLoading && !auth.isAuthenticated) {
-    // Redirect to OIDC login, preserving the current path as the return-to
-    // destination so the callback can restore it after sign-in.
-    auth.login(location.pathname + location.search);
-    // Use TanStack Router's redirect() to abort the current navigation so
-    // the protected component is never rendered.  The href is a no-op
-    // placeholder because the OIDC signinRedirect() above will take over.
-    throw redirect({ to: '/' });
+    throw redirect({
+      to: '/login',
+      search: { returnTo: location.pathname + location.search },
+    });
   }
 }

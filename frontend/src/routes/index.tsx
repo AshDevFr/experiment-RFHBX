@@ -1,96 +1,35 @@
-import { Alert, Badge, Container, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-import { PixelSprite } from '../components/PixelSprite';
-import { api } from '../lib/api';
-import { type Health, healthSchema } from '../schemas/health';
+import { Center, Loader } from '@mantine/core';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 
+export const Route = createFileRoute('/')({ 
+  beforeLoad: ({ context }) => {
+    // If auth state is already resolved, redirect immediately without rendering.
+    if (context.auth && !context.auth.isLoading) {
+      throw redirect({ to: context.auth.isAuthenticated ? '/quests' : '/login' });
+    }
+  },
+  component: IndexPage,
+});
+
+/**
+ * Shown only while the auth state is still loading (isLoading = true).
+ * Once auth resolves, a useEffect-driven navigation takes over.
+ */
 function IndexPage() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    api
-      .get('/api/health')
-      .then((res) => {
-        const parsed = healthSchema.safeParse(res.data);
-        if (parsed.success) {
-          setHealth(parsed.data);
-        } else {
-          setError('Invalid response format from server');
-        }
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Failed to reach API';
-        setError(message);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    if (!isLoading) {
+      navigate({ to: isAuthenticated ? '/quests' : '/login', replace: true });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
 
   return (
-    <Container size="sm" py="xl">
-      <Stack align="center" gap="xl">
-        <PixelSprite name="ring" size={72} />
-
-        <Title order={1} ta="center">
-          MORDOR'S EDGE
-        </Title>
-
-        <Text c="dimmed" size="sm" ta="center">
-          ONE RING TO RULE THEM ALL
-        </Text>
-
-        <Paper p="xl" withBorder w="100%">
-          <Title order={3} mb="md">
-            API STATUS
-          </Title>
-
-          {loading && (
-            <Group>
-              <Loader size="sm" />
-              <Text size="sm">Connecting to API...</Text>
-            </Group>
-          )}
-
-          {error && (
-            <Alert color="red" title="CONNECTION FAILED">
-              {error}
-            </Alert>
-          )}
-
-          {health && (
-            <Stack gap="sm">
-              <Group>
-                <Text size="sm" c="dimmed" w={120}>
-                  STATUS
-                </Text>
-                <Badge color={health.status === 'ok' ? 'retro' : 'red'} variant="filled">
-                  {health.status.toUpperCase()}
-                </Badge>
-              </Group>
-              <Group>
-                <Text size="sm" c="dimmed" w={120}>
-                  VERSION
-                </Text>
-                <Text size="sm" ff="monospace">
-                  {health.version}
-                </Text>
-              </Group>
-              <Group>
-                <Text size="sm" c="dimmed" w={120}>
-                  ENVIRONMENT
-                </Text>
-                <Text size="sm" ff="monospace">
-                  {health.environment}
-                </Text>
-              </Group>
-            </Stack>
-          )}
-        </Paper>
-      </Stack>
-    </Container>
+    <Center h="50vh">
+      <Loader />
+    </Center>
   );
 }
-
-export const Route = createFileRoute('/')({ component: IndexPage });
