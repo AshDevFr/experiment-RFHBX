@@ -3,7 +3,7 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 
-export const Route = createFileRoute('/')({ 
+export const Route = createFileRoute('/')({{
   beforeLoad: ({ context }) => {
     // If auth state is already resolved, redirect immediately without rendering.
     if (context.auth && !context.auth.isLoading) {

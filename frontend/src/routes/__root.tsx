@@ -67,9 +67,7 @@ function RootLayout() {
     <AppShell
       header={{ height: 60 }}
       navbar={
-        hasNav
-          ? { width: 220, breakpoint: 'sm', collapsed: { mobile: !mobileNavOpen } }
-          : undefined
+        hasNav ? { width: 220, breakpoint: 'sm', collapsed: { mobile: !mobileNavOpen } } : undefined
       }
       padding="md"
     >
