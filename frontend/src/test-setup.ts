@@ -16,3 +16,13 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 });
+
+// Mantine's ScrollArea (used internally by MultiSelect, Select, etc.) requires
+// ResizeObserver which is not available in jsdom.  Provide a minimal stub.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
