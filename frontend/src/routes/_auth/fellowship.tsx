@@ -53,7 +53,7 @@ function CharacterGridSkeleton() {
 // Page component
 // ---------------------------------------------------------------------------
 export function FellowshipPage() {
-  const navigate = useNavigate({ from: '/_auth/fellowship' });
+  const navigate = useNavigate({ from: Route.fullPath });
   const { races: selectedRaces = [], realms: selectedRealms = [] } = useSearch({
     from: '/_auth/fellowship',
   });
@@ -88,11 +88,15 @@ export function FellowshipPage() {
   );
 
   function handleRaceChange(values: string[]) {
-    navigate({ search: (prev) => ({ ...prev, races: values.length ? values : undefined }) });
+    navigate({
+      search: (prev: FellowshipSearch) => ({ ...prev, races: values.length ? values : undefined }),
+    });
   }
 
   function handleRealmChange(values: string[]) {
-    navigate({ search: (prev) => ({ ...prev, realms: values.length ? values : undefined }) });
+    navigate({
+      search: (prev: FellowshipSearch) => ({ ...prev, realms: values.length ? values : undefined }),
+    });
   }
 
   return (
