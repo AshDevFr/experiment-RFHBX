@@ -69,8 +69,19 @@ jobs:
       - name: Install dependencies
         run: bundle install --jobs 4 --retry 3
 
+      - name: Verify Gemfile.lock is up to date
+        run: |
+          git diff --exit-code Gemfile.lock || \
+            (echo "::error::Gemfile.lock is out of date. Run 'bundle install' and commit the updated lockfile." && exit 1)
+
       - name: Set up database
         run: bundle exec rails db:migrate
+
+      - name: Verify schema.rb is up to date
+        run: |
+          bundle exec rails db:schema:dump
+          git diff --exit-code db/schema.rb || \
+            (echo "::error::db/schema.rb is out of date. Run 'rails db:migrate' and commit the updated schema." && exit 1)
 
       - name: Run RSpec
         run: bundle exec rspec
@@ -99,6 +110,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      - name: Verify package-lock.json is up to date
+        run: |
+          git diff --exit-code package-lock.json || \
+            (echo "::error::package-lock.json is out of date. Run 'npm install' and commit the updated lockfile." && exit 1)
 
       - name: Lint (Biome)
         run: npx biome check .
