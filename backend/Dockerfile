@@ -12,7 +12,13 @@ RUN apt-get update -qq && \
 WORKDIR /app
 
 COPY Gemfile Gemfile.lock* ./
-RUN bundle install
+RUN bundle install && \
+    # Ensure extensions is a directory, not a file — Docker volume
+    # initialisation copies the image contents into the named volume and
+    # fails with "mkdir extensions: file exists" when Bundler leaves a
+    # placeholder file instead of a directory.
+    rm -f /usr/local/bundle/extensions 2>/dev/null; \
+    mkdir -p /usr/local/bundle/extensions
 
 COPY . .
 RUN chmod +x bin/*
