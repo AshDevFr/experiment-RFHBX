@@ -46,10 +46,13 @@ jobs:
           done
 
           # elasticmq-native has no shell utilities so Docker healthcheck is
-          # not possible. Poll the SQS API port from the host instead.
-          echo "  elasticmq: waiting (host-side TCP poll)..."
+          # not possible. Poll the management UI from the host instead.
+          # Note: The SQS API on port 9324 returns non-2xx for bare GET /
+          # (it expects AWS query parameters), so we poll the management UI
+          # on port 9325 which returns HTTP 200 for GET /.
+          echo "  elasticmq: waiting (host-side HTTP poll on management UI)..."
           timeout 300 bash -c '
-            until curl -sf http://localhost:9324 > /dev/null 2>&1; do
+            until curl -sf http://localhost:9325 > /dev/null 2>&1; do
               sleep 3
             done
           '
