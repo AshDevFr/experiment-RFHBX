@@ -61,22 +61,34 @@ jobs:
       - name: Wait for backend to be ready
         run: |
           echo "Waiting for backend (entrypoint: bundle install + db:prepare + server start)..."
-          timeout 600 bash -c '
-            until curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
-              # Bail immediately if the backend container has exited unexpectedly
-              # (e.g. a failed bundle install, db:prepare error, or crash at boot).
-              # Without this check the loop spins silently for the full 600 s,
-              # making a crash look like a timeout.
-              if [ -n "$(docker compose ps --status exited -q backend 2>/dev/null)" ]; then
-                echo "ERROR: backend container exited unexpectedly. Last 100 log lines:"
-                docker compose logs --tail=100 backend
-                exit 1
-              fi
-              echo "  backend: waiting..."
-              sleep 5
-            done
-          '
-          echo "  backend: ready ✓"
+          for i in 1 2 3; do
+            echo "  backend: health-check attempt $i (polling up to 300s)..."
+            if timeout 300 bash -c '
+              until curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
+                # Bail immediately if the backend container has exited unexpectedly
+                # (e.g. a failed bundle install, db:prepare error, or crash at boot).
+                # Without this check the loop spins silently for the full timeout,
+                # making a crash look like a timeout.
+                if [ -n "$(docker compose ps --status exited -q backend 2>/dev/null)" ]; then
+                  echo "ERROR: backend container exited unexpectedly. Last 100 log lines:"
+                  docker compose logs --tail=100 backend
+                  exit 1
+                fi
+                echo "  backend: waiting..."
+                sleep 5
+              done
+            '; then
+              echo "  backend: ready ✓"
+              break
+            fi
+            echo "  backend: attempt $i timed out"
+            if [ "$i" -eq 3 ]; then
+              echo "All retries exhausted. Backend failed to start."
+              exit 1
+            fi
+            echo "  backend: retrying in 10s..."
+            sleep 10
+          done
 
       - name: Wait for frontend to be ready
         run: |
