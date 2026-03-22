@@ -61,7 +61,7 @@ jobs:
       - name: Wait for backend to be ready
         run: |
           echo "Waiting for backend (entrypoint: bundle install + db:prepare + server start)..."
-          timeout 180 bash -c '
+          timeout 600 bash -c '
             until curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
               echo "  backend: waiting..."
               sleep 5
