@@ -66,13 +66,10 @@ jobs:
           ruby-version: "4.0.2"
           working-directory: backend
 
-      - name: Install dependencies
-        run: bundle install --jobs 4 --retry 3
-
-      - name: Verify Gemfile.lock is up to date
+      - name: Install dependencies (frozen — fails if Gemfile.lock is stale)
         run: |
-          git diff --exit-code Gemfile.lock || \
-            (echo "::error::Gemfile.lock is out of date. Run 'bundle install' and commit the updated lockfile." && exit 1)
+          bundle config set --local frozen true
+          bundle install --jobs 4 --retry 3
 
       - name: Set up database
         run: bundle exec rails db:migrate
