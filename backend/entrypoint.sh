@@ -19,7 +19,7 @@ bundle check || bundle install
 MAX_RETRIES=10
 RETRY_INTERVAL=2
 for i in $(seq 1 $MAX_RETRIES); do
-  if bundle exec rails runner "ActiveRecord::Base.connection" 2>/dev/null; then
+  if bundle exec rails runner "begin; ActiveRecord::Base.connection; rescue ActiveRecord::NoDatabaseError; end" 2>/dev/null; then
     break
   fi
   if [ "$i" -eq "$MAX_RETRIES" ]; then
