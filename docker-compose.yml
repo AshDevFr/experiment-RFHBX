@@ -10,9 +10,10 @@ services:
       - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -22,9 +23,24 @@ services:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+
+  # ElasticMQ — local SQS-compatible service (no real AWS required)
+  # Access the management UI at http://localhost:9325
+  # SQS endpoint: http://localhost:9324 (also accessible as http://elasticmq:9324 within Docker)
+  elasticmq:
+    image: softwaremill/elasticmq-native
+    ports:
+      - "9324:9324"  # SQS-compatible API
+      - "9325:9325"  # Management UI
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf
+    # Note: softwaremill/elasticmq-native is a minimal GraalVM native image
+    # with no shell utilities (no wget, curl, nc). CMD-SHELL healthchecks
+    # cannot work. Readiness is verified from the host side in CI instead.
 
   backend:
     build:
@@ -35,7 +51,6 @@ services:
       - backend_bundle:/usr/local/bundle
     ports:
       - "3000:3000"
-    env_file: .env
     environment:
       RAILS_ENV: development
       DATABASE_HOST: postgres
@@ -43,14 +58,67 @@ services:
       DATABASE_USER: ${DATABASE_USER:-postgres}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
       REDIS_URL: redis://redis:6379/0
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/palantir-queue
+      SQS_QUEUE_NAME: palantir-queue
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+      # OIDC / JWT authentication (Phase 6.1)
+      # Point these at your OIDC provider (Keycloak, Auth0, Dex, etc.)
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_JWKS_CACHE_TTL: ${OIDC_JWKS_CACHE_TTL:-3600}
+      # Dev auth bypass — set to "true" to skip OIDC in development
       DEV_AUTH_BYPASS: ${DEV_AUTH_BYPASS:-false}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      elasticmq:
+        condition: service_started
     stdin_open: true
     tty: true
+
+  # Shoryuken worker — processes SQS messages from the palantir-queue
+  # Run separately: docker compose up shoryuken
+  shoryuken:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: bundle exec shoryuken -r ./config/environment.rb -q palantir-queue
+    volumes:
+      - ./backend:/app
+      - backend_bundle:/usr/local/bundle
+    environment:
+      RAILS_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
+      REDIS_URL: redis://redis:6379/0
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/palantir-queue
+      SQS_QUEUE_NAME: palantir-queue
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+      # OIDC / JWT authentication (Phase 6.1)
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_JWKS_CACHE_TTL: ${OIDC_JWKS_CACHE_TTL:-3600}
+    depends_on:
+      backend:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
 
   frontend:
     build:
@@ -61,9 +129,9 @@ services:
       - frontend_node_modules:/app/node_modules
     ports:
       - "5173:5173"
-    env_file: .env
     environment:
       VITE_API_BASE_URL: http://backend:3000
+      # Dev auth bypass — set to "true" to show the Dev Login button
       VITE_DEV_AUTH_BYPASS: ${VITE_DEV_AUTH_BYPASS:-false}
     depends_on:
       - backend
