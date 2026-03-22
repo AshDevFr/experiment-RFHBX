@@ -41,7 +41,7 @@ function LoginPage() {
 
   return (
     <Center h="80vh">
-      <Paper p="xl" w={360} withBorder>
+      <Paper p="xl" miw={420} w={440} withBorder>
         <Stack align="center" gap="lg">
           <Title order={2} ta="center">
             MORDOR'S EDGE
