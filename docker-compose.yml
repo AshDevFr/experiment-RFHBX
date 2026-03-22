@@ -109,6 +109,8 @@ services:
       OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
       OIDC_JWKS_CACHE_TTL: ${OIDC_JWKS_CACHE_TTL:-3600}
     depends_on:
+      backend:
+        condition: service_started
       postgres:
         condition: service_healthy
       elasticmq:
