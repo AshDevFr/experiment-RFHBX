@@ -20,10 +20,12 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 function makeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
     user: null,
+    devUser: null,
     isLoading: false,
     isAuthenticated: false,
     login: vi.fn(),
     logout: vi.fn(),
+    devLogin: vi.fn(),
     getAccessToken: vi.fn(),
     ...overrides,
   };
