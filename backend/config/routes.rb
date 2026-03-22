@@ -31,12 +31,13 @@ Rails.application.routes.draw do
     get "health", to: "health#show"
     get "up",     to: "health#show"
 
-    # Dev auth bypass — only available in development when DEV_AUTH_BYPASS=true.
-    # Issues a signed token for local development without a real OIDC provider.
-    if Rails.env.development?
-      namespace :dev do
-        post "auth", to: "auth#create"
-      end
+    # Dev auth bypass — issues a signed token for local development without a
+    # real OIDC provider.  The route is always drawn so request specs can reach
+    # it, but the controller enforces the runtime guard:
+    #   Rails.env.development? && ENV["DEV_AUTH_BYPASS"] == "true"
+    # Non-development requests receive a 404 from the controller.
+    namespace :dev do
+      post "auth", to: "auth#create"
     end
 
     namespace :v1 do
