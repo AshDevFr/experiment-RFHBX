@@ -12,6 +12,11 @@
 #
 # Skip authentication for specific actions:
 #   skip_before_action :authenticate_request!, only: [:health]
+#
+# Dev bypass:
+#   Set DEV_AUTH_BYPASS=true (development only) to accept tokens issued by
+#   DevAuthToken in place of real OIDC JWTs. The bypass is never active in
+#   production or test; a misconfiguration is logged and silently ignored.
 module Authenticatable
   extend ActiveSupport::Concern
 
@@ -23,6 +28,30 @@ module Authenticatable
   private
 
   def authenticate_request!
+    # Safety guard: if someone accidentally sets DEV_AUTH_BYPASS=true in a
+    # non-development environment, log the misconfiguration and fall through
+    # to normal JWT validation (which will reject the bypass token).
+    if ENV["DEV_AUTH_BYPASS"] == "true" && !Rails.env.development?
+      Rails.logger.error(
+        "[DevAuth] DEV_AUTH_BYPASS=true is set but RAILS_ENV=#{Rails.env}. " \
+        "Bypass is only permitted in development — ignoring."
+      )
+    end
+
+    # Dev bypass path (development + flag only).
+    if dev_bypass_active?
+      token = extract_bearer_token
+      if token.present?
+        claims = DevAuthToken.verify(token)
+        if claims
+          @current_principal = Principal.new(claims)
+          return
+        end
+      end
+      # Token absent or failed dev-bypass verification — fall through to JWT.
+    end
+
+    # Normal OIDC JWT path.
     token = extract_bearer_token
     if token.nil?
       render json: { error: "unauthorized" }, status: :unauthorized
@@ -33,6 +62,10 @@ module Authenticatable
     @current_principal = Principal.new(claims)
   rescue JwtDecoder::DecodeError
     render json: { error: "unauthorized" }, status: :unauthorized
+  end
+
+  def dev_bypass_active?
+    Rails.env.development? && ENV["DEV_AUTH_BYPASS"] == "true"
   end
 
   def extract_bearer_token
