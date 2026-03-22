@@ -36,12 +36,9 @@ services:
       - "9325:9325"  # Management UI
     volumes:
       - ./elasticmq.conf:/opt/elasticmq.conf
-    healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 9324"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
+    # Note: softwaremill/elasticmq-native is a minimal GraalVM native image
+    # with no shell utilities (no wget, curl, nc). CMD-SHELL healthchecks
+    # cannot work. Readiness is verified from the host side in CI instead.
 
   backend:
     build:
@@ -78,7 +75,7 @@ services:
       redis:
         condition: service_healthy
       elasticmq:
-        condition: service_healthy
+        condition: service_started
     stdin_open: true
     tty: true
 
@@ -115,7 +112,7 @@ services:
       postgres:
         condition: service_healthy
       elasticmq:
-        condition: service_healthy
+        condition: service_started
 
   frontend:
     build:
