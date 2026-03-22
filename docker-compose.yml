@@ -37,10 +37,11 @@ services:
     volumes:
       - ./elasticmq.conf:/opt/elasticmq.conf
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9325/ > /dev/null || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "nc -z localhost 9324"]
+      interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 5s
 
   backend:
     build:
