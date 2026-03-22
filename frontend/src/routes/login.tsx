@@ -1,5 +1,6 @@
-import { Button, Center, Paper, Stack, Text, Title } from '@mantine/core';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { Button, Center, Divider, Paper, Stack, Text, Title } from '@mantine/core';
+import { createFileRoute, redirect, useRouter } from '@tanstack/react-router';
+import { useState } from 'react';
 import { z } from 'zod';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -31,12 +32,28 @@ export const Route = createFileRoute('/login')({
 // Component
 // ---------------------------------------------------------------------------
 
+const isDevBypass = import.meta.env.VITE_DEV_AUTH_BYPASS === 'true';
+
 function LoginPage() {
-  const { login, isLoading } = useAuth();
+  const { login, devLogin, isLoading } = useAuth();
   const { returnTo } = Route.useSearch();
+  const router = useRouter();
+  const [devLoading, setDevLoading] = useState(false);
 
   const handleSignIn = () => {
     login(returnTo ?? '/quests');
+  };
+
+  const handleDevLogin = async () => {
+    setDevLoading(true);
+    try {
+      await devLogin();
+      await router.navigate({ to: returnTo ?? '/quests' });
+    } catch (err) {
+      console.error('Dev login failed:', err);
+    } finally {
+      setDevLoading(false);
+    }
   };
 
   return (
@@ -52,6 +69,25 @@ function LoginPage() {
           <Button fullWidth onClick={handleSignIn} loading={isLoading} size="md">
             Sign in with OIDC
           </Button>
+          {isDevBypass && (
+            <>
+              <Divider w="100%" label="or" labelPosition="center" />
+              <Button
+                fullWidth
+                variant="outline"
+                color="yellow"
+                onClick={handleDevLogin}
+                loading={devLoading}
+                size="md"
+                data-testid="dev-login-btn"
+              >
+                Dev Login (bypass OIDC)
+              </Button>
+              <Text size="xs" c="dimmed" ta="center">
+                DEV_AUTH_BYPASS active — dev@mordors-edge.local
+              </Text>
+            </>
+          )}
         </Stack>
       </Paper>
     </Center>
