@@ -24,7 +24,7 @@ jobs:
         run: docker compose build
 
       - name: Start full stack
-        run: docker compose up -d
+        run: docker compose up -d --wait --wait-timeout 120
 
       - name: Wait for infrastructure services to be healthy
         run: |
