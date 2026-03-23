@@ -42,6 +42,43 @@ module Api
         head :no_content
       end
 
+      # POST /api/v1/quests/reset
+      def reset
+        unless params[:confirm].to_s == "true"
+          return render json: { error: "Reset requires confirm: true" },
+                        status: :unprocessable_entity
+        end
+
+        Quest.transaction do
+          QuestMembership.delete_all
+          Quest.update_all(status: "pending", progress: 0.0, attempts: 0)
+          Character.update_all(status: "idle")
+        end
+
+        render json: { message: "All quests reset to pending state", count: Quest.count }
+      end
+
+      # POST /api/v1/quests/randomize
+      def randomize
+        available_characters = Character.where(status: %w[idle on_quest]).to_a
+        quests = Quest.all.to_a
+
+        Quest.transaction do
+          QuestMembership.delete_all
+          Character.update_all(status: "idle")
+
+          quests.each do |quest|
+            count = rand(2..4)
+            assigned = available_characters.sample(count)
+            assigned.each do |character|
+              QuestMembership.create!(quest: quest, character: character)
+            end
+          end
+        end
+
+        render json: { message: "Quest assignments randomized", count: quests.count }
+      end
+
       private
 
       def set_quest

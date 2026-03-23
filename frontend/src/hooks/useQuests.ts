@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { type Quest, questsSchema } from '../schemas/quest';
+import { useCallback, useEffect, useState } from "react";
+import { api } from "../lib/api";
+import { type Quest, questsSchema } from "../schemas/quest";
 
 export interface UseQuestsResult {
   quests: Quest[];
   isLoading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
 /**
@@ -17,6 +18,11 @@ export function useQuests(): UseQuestsResult {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchCount, setFetchCount] = useState(0);
+
+  const refetch = useCallback(() => {
+    setFetchCount((c) => c + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +32,7 @@ export function useQuests(): UseQuestsResult {
       setError(null);
 
       try {
-        const response = await api.get<unknown>('/api/v1/quests', {
+        const response = await api.get<unknown>("/api/v1/quests", {
           params: { per_page: 100 },
         });
         const parsed = questsSchema.parse(response.data);
@@ -35,7 +41,7 @@ export function useQuests(): UseQuestsResult {
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Failed to load quests';
+          const message = err instanceof Error ? err.message : "Failed to load quests";
           setError(message);
         }
       } finally {
@@ -50,7 +56,7 @@ export function useQuests(): UseQuestsResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchCount]);
 
-  return { quests, isLoading, error };
+  return { quests, isLoading, error, refetch };
 }

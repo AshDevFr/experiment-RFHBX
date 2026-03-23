@@ -203,4 +203,58 @@ RSpec.describe "Api::V1::Quests", type: :request do
       expect(times).to eq(times.sort.reverse)
     end
   end
+
+  describe "POST /api/v1/quests/reset" do
+    before do
+      quest = create(:quest, status: "active", progress: 0.5, attempts: 2)
+      character = create(:character, status: "on_quest")
+      create(:quest_membership, quest: quest, character: character)
+    end
+
+    context "without confirm param" do
+      it "returns unprocessable_entity" do
+        post "/api/v1/quests/reset"
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context "with confirm: true" do
+      it "resets all quests to pending" do
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(response).to have_http_status(:ok)
+        expect(Quest.all.pluck(:status).uniq).to eq(["pending"])
+        expect(Quest.all.pluck(:progress).map(&:to_f).uniq).to eq([0.0])
+      end
+
+      it "clears all quest memberships" do
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(QuestMembership.count).to eq(0)
+      end
+
+      it "sets all characters to idle" do
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(Character.all.pluck(:status).uniq).to eq(["idle"])
+      end
+    end
+  end
+
+  describe "POST /api/v1/quests/randomize" do
+    before do
+      create_list(:quest, 3)
+      create_list(:character, 6, status: "idle")
+    end
+
+    it "assigns characters to quests" do
+      post "/api/v1/quests/randomize"
+      expect(response).to have_http_status(:ok)
+      expect(QuestMembership.count).to be > 0
+    end
+
+    it "returns a success message" do
+      post "/api/v1/quests/randomize"
+      json = JSON.parse(response.body)
+      expect(json["message"]).to include("randomized")
+      expect(json["count"]).to eq(3)
+    end
+  end
 end

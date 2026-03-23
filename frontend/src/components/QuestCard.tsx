@@ -1,26 +1,42 @@
-import { Badge, Card, Group, Progress, Stack, Text } from '@mantine/core';
-import type { Quest } from '../schemas/quest';
+import { Badge, Button, Card, Group, Progress, Stack, Text } from "@mantine/core";
+import type { Quest } from "../schemas/quest";
 
 interface QuestCardProps {
   quest: Quest;
   onClick: (quest: Quest) => void;
+  onAdvance?: (quest: Quest) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'gray',
-  active: 'blue',
-  completed: 'green',
-  failed: 'red',
+  pending: "gray",
+  active: "blue",
+  completed: "green",
+  failed: "red",
+};
+
+const STATUS_TRANSITIONS: Record<string, string | null> = {
+  pending: "active",
+  active: "completed",
+  completed: null,
+  failed: null,
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  active: "Active",
+  completed: "Completed",
+  failed: "Failed",
 };
 
 function dangerColor(level: number): string {
-  if (level <= 3) return 'green';
-  if (level <= 6) return 'yellow';
-  return 'red';
+  if (level <= 3) return "green";
+  if (level <= 6) return "yellow";
+  return "red";
 }
 
-export function QuestCard({ quest, onClick }: QuestCardProps) {
-  const statusColor = STATUS_COLORS[quest.status] ?? 'gray';
+export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
+  const statusColor = STATUS_COLORS[quest.status] ?? "gray";
+  const nextStatus = STATUS_TRANSITIONS[quest.status];
 
   return (
     <Card
@@ -28,7 +44,7 @@ export function QuestCard({ quest, onClick }: QuestCardProps) {
       padding="md"
       radius="md"
       withBorder
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: "pointer" }}
       onClick={() => onClick(quest)}
       data-testid="quest-card"
     >
@@ -62,8 +78,33 @@ export function QuestCard({ quest, onClick }: QuestCardProps) {
           )}
         </Group>
 
-        {quest.progress != null && quest.status === 'active' && (
+        {quest.progress != null && quest.status === "active" && (
           <Progress value={quest.progress} size="sm" color="blue" />
+        )}
+
+        {quest.members && quest.members.length > 0 && (
+          <Group gap={4}>
+            {quest.members.map((m) => (
+              <Badge key={m.id} size="xs" variant="outline" color="gray">
+                {m.name}
+              </Badge>
+            ))}
+          </Group>
+        )}
+
+        {onAdvance && nextStatus && (
+          <Button
+            size="xs"
+            variant="light"
+            color={STATUS_COLORS[nextStatus] ?? "blue"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdvance(quest);
+            }}
+            mt="xs"
+          >
+            Advance → {STATUS_LABELS[nextStatus] ?? nextStatus}
+          </Button>
         )}
       </Stack>
     </Card>

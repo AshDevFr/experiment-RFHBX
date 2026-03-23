@@ -44,6 +44,10 @@ Rails.application.routes.draw do
       resources :characters
 
       resources :quests do
+        collection do
+          post :reset
+          post :randomize
+        end
         resources :members, only: %i[create destroy], param: :character_id,
                   controller: "quests/members"
         resources :events, only: %i[index], controller: "quests/events"
