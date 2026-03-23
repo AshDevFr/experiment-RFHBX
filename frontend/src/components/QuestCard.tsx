@@ -1,5 +1,5 @@
-import { Badge, Button, Card, Group, Progress, Stack, Text } from "@mantine/core";
-import type { Quest } from "../schemas/quest";
+import { Badge, Button, Card, Group, Progress, Stack, Text } from '@mantine/core';
+import type { Quest } from '../schemas/quest';
 
 interface QuestCardProps {
   quest: Quest;
@@ -8,34 +8,34 @@ interface QuestCardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "gray",
-  active: "blue",
-  completed: "green",
-  failed: "red",
+  pending: 'gray',
+  active: 'blue',
+  completed: 'green',
+  failed: 'red',
 };
 
 const STATUS_TRANSITIONS: Record<string, string | null> = {
-  pending: "active",
-  active: "completed",
+  pending: 'active',
+  active: 'completed',
   completed: null,
   failed: null,
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  active: "Active",
-  completed: "Completed",
-  failed: "Failed",
+  pending: 'Pending',
+  active: 'Active',
+  completed: 'Completed',
+  failed: 'Failed',
 };
 
 function dangerColor(level: number): string {
-  if (level <= 3) return "green";
-  if (level <= 6) return "yellow";
-  return "red";
+  if (level <= 3) return 'green';
+  if (level <= 6) return 'yellow';
+  return 'red';
 }
 
 export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
-  const statusColor = STATUS_COLORS[quest.status] ?? "gray";
+  const statusColor = STATUS_COLORS[quest.status] ?? 'gray';
   const nextStatus = STATUS_TRANSITIONS[quest.status];
 
   return (
@@ -44,7 +44,7 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
       padding="md"
       radius="md"
       withBorder
-      style={{ cursor: "pointer" }}
+      style={{ cursor: 'pointer' }}
       onClick={() => onClick(quest)}
       data-testid="quest-card"
     >
@@ -78,7 +78,7 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
           )}
         </Group>
 
-        {quest.progress != null && quest.status === "active" && (
+        {quest.progress != null && quest.status === 'active' && (
           <Progress value={quest.progress} size="sm" color="blue" />
         )}
 
@@ -96,7 +96,7 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
           <Button
             size="xs"
             variant="light"
-            color={STATUS_COLORS[nextStatus] ?? "blue"}
+            color={STATUS_COLORS[nextStatus] ?? 'blue'}
             onClick={(e) => {
               e.stopPropagation();
               onAdvance(quest);

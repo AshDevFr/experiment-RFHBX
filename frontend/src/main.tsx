@@ -1,16 +1,16 @@
-import { MantineProvider } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
-import { createRouter, RouterProvider } from "@tanstack/react-router";
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "@mantine/core/styles.css";
-import "@mantine/notifications/styles.css";
-import type { AuthContextValue } from "./auth/AuthContext";
-import { AuthProvider, useAuth } from "./auth/AuthProvider";
-import { ActionCableProvider } from "./hooks/useActionCable";
-import { routeTree } from "./routeTree.gen";
-import { useThemeStore } from "./store/themeStore";
-import { theme } from "./theme";
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import { createRouter, RouterProvider } from '@tanstack/react-router';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
+import type { AuthContextValue } from './auth/AuthContext';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { ActionCableProvider } from './hooks/useActionCable';
+import { routeTree } from './routeTree.gen';
+import { useThemeStore } from './store/themeStore';
+import { theme } from './theme';
 
 const router = createRouter({
   routeTree,
@@ -20,7 +20,7 @@ const router = createRouter({
   },
 });
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
@@ -49,8 +49,8 @@ function AppRoot() {
   );
 }
 
-const rootEl = document.getElementById("root");
-if (!rootEl) throw new Error("Root element #root not found in document");
+const rootEl = document.getElementById('root');
+if (!rootEl) throw new Error('Root element #root not found in document');
 
 createRoot(rootEl).render(
   <StrictMode>

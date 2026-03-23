@@ -10,19 +10,19 @@ import {
   Stack,
   Text,
   Title,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CableStatus } from "../../components/CableStatus";
-import { QuestCard } from "../../components/QuestCard";
-import { QuestDetailModal } from "../../components/QuestDetailModal";
-import { useQuestEventsChannel } from "../../hooks/useQuestEventsChannel";
-import { useQuests } from "../../hooks/useQuests";
-import { api } from "../../lib/api";
-import type { Quest } from "../../schemas/quest";
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { createFileRoute } from '@tanstack/react-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CableStatus } from '../../components/CableStatus';
+import { QuestCard } from '../../components/QuestCard';
+import { QuestDetailModal } from '../../components/QuestDetailModal';
+import { useQuestEventsChannel } from '../../hooks/useQuestEventsChannel';
+import { useQuests } from '../../hooks/useQuests';
+import { api } from '../../lib/api';
+import type { Quest } from '../../schemas/quest';
 
-export const Route = createFileRoute("/_auth/quests")({
+export const Route = createFileRoute('/_auth/quests')({
   component: QuestsPage,
 });
 
@@ -44,27 +44,27 @@ function QuestGridSkeleton() {
 // Status filter options
 // ---------------------------------------------------------------------------
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "failed", label: "Failed" },
+  { value: 'pending', label: 'Pending' },
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'failed', label: 'Failed' },
 ];
 
 // ---------------------------------------------------------------------------
 // Status transition map
 // ---------------------------------------------------------------------------
 const STATUS_TRANSITIONS: Record<string, string | null> = {
-  pending: "active",
-  active: "completed",
+  pending: 'active',
+  active: 'completed',
   completed: null,
   failed: null,
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  active: "Active",
-  completed: "Completed",
-  failed: "Failed",
+  pending: 'Pending',
+  active: 'Active',
+  completed: 'Completed',
+  failed: 'Failed',
 };
 
 // ---------------------------------------------------------------------------
@@ -93,10 +93,10 @@ export function QuestsPage() {
     if (!latestEvent) return;
 
     const patch: Partial<Quest> = {};
-    if ("status" in latestEvent && typeof latestEvent.status === "string") {
-      patch.status = latestEvent.status as Quest["status"];
+    if ('status' in latestEvent && typeof latestEvent.status === 'string') {
+      patch.status = latestEvent.status as Quest['status'];
     }
-    if ("progress" in latestEvent && typeof latestEvent.progress === "number") {
+    if ('progress' in latestEvent && typeof latestEvent.progress === 'number') {
       patch.progress = latestEvent.progress;
     }
     if (Object.keys(patch).length === 0) return;
@@ -118,68 +118,63 @@ export function QuestsPage() {
     setStartError(null);
     try {
       await api.patch(`/api/v1/quests/${questId}`, {
-        quest: { status: "active" },
+        quest: { status: 'active' },
       });
       const apply = (q: Quest): Quest =>
-        q.id === questId ? { ...q, status: "active" as const } : q;
+        q.id === questId ? { ...q, status: 'active' as const } : q;
       setLiveQuests((prev) => prev.map(apply));
       setSelectedQuest((prev) => (prev ? apply(prev) : null));
       notifications.show({
-        title: "Quest Started",
-        message: "Quest is now active",
-        color: "blue",
+        title: 'Quest Started',
+        message: 'Quest is now active',
+        color: 'blue',
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to start quest";
+      const message = err instanceof Error ? err.message : 'Failed to start quest';
       setStartError(message);
     }
   }, []);
 
-  const handleAdvanceStatus = useCallback(
-    async (quest: Quest) => {
-      const nextStatus = STATUS_TRANSITIONS[quest.status];
-      if (!nextStatus) return;
+  const handleAdvanceStatus = useCallback(async (quest: Quest) => {
+    const nextStatus = STATUS_TRANSITIONS[quest.status];
+    if (!nextStatus) return;
 
-      // Optimistic update
-      const apply = (q: Quest): Quest =>
-        q.id === quest.id ? { ...q, status: nextStatus as Quest["status"] } : q;
-      setLiveQuests((prev) => prev.map(apply));
+    // Optimistic update
+    const apply = (q: Quest): Quest =>
+      q.id === quest.id ? { ...q, status: nextStatus as Quest['status'] } : q;
+    setLiveQuests((prev) => prev.map(apply));
 
-      try {
-        await api.patch(`/api/v1/quests/${quest.id}`, {
-          quest: { status: nextStatus },
-        });
-        notifications.show({
-          title: "Status Updated",
-          message: `${quest.title} is now ${STATUS_LABELS[nextStatus] ?? nextStatus}`,
-          color: "blue",
-        });
-      } catch (err: unknown) {
-        // Revert optimistic update
-        setLiveQuests((prev) =>
-          prev.map((q) => (q.id === quest.id ? quest : q)),
-        );
-        const message = err instanceof Error ? err.message : "Failed to update quest status";
-        notifications.show({ title: "Error", message, color: "red" });
-      }
-    },
-    [],
-  );
+    try {
+      await api.patch(`/api/v1/quests/${quest.id}`, {
+        quest: { status: nextStatus },
+      });
+      notifications.show({
+        title: 'Status Updated',
+        message: `${quest.title} is now ${STATUS_LABELS[nextStatus] ?? nextStatus}`,
+        color: 'blue',
+      });
+    } catch (err: unknown) {
+      // Revert optimistic update
+      setLiveQuests((prev) => prev.map((q) => (q.id === quest.id ? quest : q)));
+      const message = err instanceof Error ? err.message : 'Failed to update quest status';
+      notifications.show({ title: 'Error', message, color: 'red' });
+    }
+  }, []);
 
   const handleReset = useCallback(async () => {
     setResetting(true);
     try {
-      await api.post("/api/v1/quests/reset", { confirm: true });
+      await api.post('/api/v1/quests/reset', { confirm: true });
       notifications.show({
-        title: "Quests Reset",
-        message: "All quests have been reset to pending state",
-        color: "blue",
+        title: 'Quests Reset',
+        message: 'All quests have been reset to pending state',
+        color: 'blue',
       });
       setResetModalOpen(false);
       refetch();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reset quests";
-      notifications.show({ title: "Reset Failed", message, color: "red" });
+      const message = err instanceof Error ? err.message : 'Failed to reset quests';
+      notifications.show({ title: 'Reset Failed', message, color: 'red' });
     } finally {
       setResetting(false);
     }
@@ -188,16 +183,16 @@ export function QuestsPage() {
   const handleRandomize = useCallback(async () => {
     setRandomizing(true);
     try {
-      await api.post("/api/v1/quests/randomize");
+      await api.post('/api/v1/quests/randomize');
       notifications.show({
-        title: "Assignments Randomized",
-        message: "Quest members have been reassigned randomly",
-        color: "grape",
+        title: 'Assignments Randomized',
+        message: 'Quest members have been reassigned randomly',
+        color: 'grape',
       });
       refetch();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to randomize assignments";
-      notifications.show({ title: "Randomize Failed", message, color: "red" });
+      const message = err instanceof Error ? err.message : 'Failed to randomize assignments';
+      notifications.show({ title: 'Randomize Failed', message, color: 'red' });
     } finally {
       setRandomizing(false);
     }
@@ -253,7 +248,7 @@ export function QuestsPage() {
       )}
 
       {/* Disconnect banner */}
-      {connectionStatus === "disconnected" && (
+      {connectionStatus === 'disconnected' && (
         <Alert
           color="yellow"
           title="Real-time updates unavailable"
