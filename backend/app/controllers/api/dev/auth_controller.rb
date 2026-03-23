@@ -16,13 +16,19 @@ module Api
       skip_before_action :authenticate_request!
 
       def create
-        unless Rails.env.development? && ENV["DEV_AUTH_BYPASS"] == "true"
+        unless dev_auth_allowed?
           render json: { error: "not found" }, status: :not_found
           return
         end
 
         token = DevAuthToken.generate
         render json: { token: token, user: DevAuthToken::DEV_CLAIMS }, status: :ok
+      end
+
+      private
+
+      def dev_auth_allowed?
+        Rails.env.development? && ENV["DEV_AUTH_BYPASS"] == "true"
       end
     end
   end

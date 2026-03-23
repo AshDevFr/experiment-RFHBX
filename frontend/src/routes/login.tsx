@@ -80,6 +80,7 @@ function LoginPage() {
                 loading={devLoading}
                 size="md"
                 data-testid="dev-login-btn"
+                styles={{ label: { overflow: 'visible', whiteSpace: 'nowrap' } }}
               >
                 Dev Login (bypass OIDC)
               </Button>

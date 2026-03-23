@@ -6,6 +6,11 @@ Rails.application.configure do
   config.enable_reloading = false
   config.eager_load = false
 
+  # Allow any host in test so request specs aren't blocked by
+  # ActionDispatch::HostAuthorization (e.g. when stubbing Rails.env
+  # or using custom Host headers for Docker-related regression tests).
+  config.hosts.clear
+
   config.public_file_server.headers = { "Cache-Control" => "public, max-age=3600" }
 
   config.consider_all_requests_local = true

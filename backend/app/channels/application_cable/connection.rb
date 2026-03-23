@@ -14,10 +14,20 @@ module ApplicationCable
       token = extract_token
       reject_unauthorized_connection if token.nil?
 
+      # Dev bypass path: accept DevAuthToken-signed tokens in development.
+      if dev_bypass_active?
+        claims = DevAuthToken.verify(token)
+        return Principal.new(claims) if claims
+      end
+
       claims = jwt_decoder.call(token)
       Principal.new(claims)
     rescue JwtDecoder::DecodeError
       reject_unauthorized_connection
+    end
+
+    def dev_bypass_active?
+      Rails.env.development? && ENV["DEV_AUTH_BYPASS"] == "true"
     end
 
     def extract_token

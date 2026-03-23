@@ -8,6 +8,11 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.server_timing = true
 
+  # Allow the Docker Compose service name so that requests originating from
+  # the frontend container (which hits http://backend:3000) are not blocked
+  # by ActionDispatch::HostAuthorization.
+  config.hosts << "backend"
+
   config.active_job.queue_adapter = :sidekiq
 
   # Allow WebSocket upgrades from Vite dev server (covers both Docker and native dev topologies).
