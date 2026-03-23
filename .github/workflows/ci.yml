@@ -110,6 +110,7 @@ jobs:
 
       - name: Verify package-lock.json is up to date
         run: |
+          npm install --package-lock-only --legacy-peer-deps
           git diff --exit-code package-lock.json || \
             (echo "::error::package-lock.json is out of date. Run 'npm install' and commit the updated lockfile." && exit 1)
 
