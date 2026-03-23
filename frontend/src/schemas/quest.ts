@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const questMemberSchema = z.object({
   id: z.number(),
@@ -14,12 +14,12 @@ export const questSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string().nullable().optional(),
-  status: z.enum(["pending", "active", "completed", "failed"]),
+  status: z.enum(['pending', 'active', 'completed', 'failed']),
   danger_level: z.number(),
   region: z.string().nullable().optional(),
   progress: z.number().nullable().optional(),
   success_chance: z.number().nullable().optional(),
-  quest_type: z.enum(["campaign", "random"]),
+  quest_type: z.enum(['campaign', 'random']),
   campaign_order: z.number().nullable().optional(),
   attempts: z.number(),
   members: z.array(questMemberSchema).optional(),
@@ -31,23 +31,23 @@ export type Quest = z.infer<typeof questSchema>;
 
 export const questsSchema = z.array(questSchema);
 
-export const QUEST_STATUS_TRANSITIONS: Record<Quest["status"], Quest["status"] | null> = {
-  pending: "active",
-  active: "completed",
+export const QUEST_STATUS_TRANSITIONS: Record<Quest['status'], Quest['status'] | null> = {
+  pending: 'active',
+  active: 'completed',
   completed: null,
   failed: null,
 };
 
-export const QUEST_STATUS_LABELS: Record<Quest["status"], string> = {
-  pending: "Pending",
-  active: "Active",
-  completed: "Completed",
-  failed: "Failed",
+export const QUEST_STATUS_LABELS: Record<Quest['status'], string> = {
+  pending: 'Pending',
+  active: 'Active',
+  completed: 'Completed',
+  failed: 'Failed',
 };
 
-export const QUEST_STATUS_COLORS: Record<Quest["status"], string> = {
-  pending: "gray",
-  active: "blue",
-  completed: "green",
-  failed: "red",
+export const QUEST_STATUS_COLORS: Record<Quest['status'], string> = {
+  pending: 'gray',
+  active: 'blue',
+  completed: 'green',
+  failed: 'red',
 };

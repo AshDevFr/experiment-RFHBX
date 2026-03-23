@@ -19,6 +19,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 // ---------------------------------------------------------------------------
 // Mock useQuests so we control fetched data.
 // ---------------------------------------------------------------------------
+const mockRefetch = vi.fn();
 const mockUseQuests = vi.fn();
 
 vi.mock('../../hooks/useQuests', () => ({
@@ -35,11 +36,21 @@ vi.mock('../../hooks/useQuestEventsChannel', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock the api module for start quest.
+// Mock the api module for quest actions.
 // ---------------------------------------------------------------------------
 vi.mock('../../lib/api', () => ({
   api: {
     patch: vi.fn(),
+    post: vi.fn(),
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Mock mantine notifications.
+// ---------------------------------------------------------------------------
+vi.mock('@mantine/notifications', () => ({
+  notifications: {
+    show: vi.fn(),
   },
 }));
 
@@ -110,6 +121,7 @@ describe('QuestsPage', () => {
       quests: sampleQuests,
       isLoading: false,
       error: null,
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
@@ -125,6 +137,7 @@ describe('QuestsPage', () => {
       quests: [],
       isLoading: true,
       error: null,
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
@@ -138,6 +151,7 @@ describe('QuestsPage', () => {
       quests: [],
       isLoading: false,
       error: 'Network Error',
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
@@ -156,6 +170,7 @@ describe('QuestsPage', () => {
       quests: sampleQuests,
       isLoading: false,
       error: null,
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
@@ -169,6 +184,7 @@ describe('QuestsPage', () => {
       quests: sampleQuests,
       isLoading: false,
       error: null,
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
@@ -181,6 +197,7 @@ describe('QuestsPage', () => {
       quests: sampleQuests,
       isLoading: false,
       error: null,
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
@@ -193,10 +210,39 @@ describe('QuestsPage', () => {
       quests: [],
       isLoading: false,
       error: null,
+      refetch: mockRefetch,
     });
 
     render(<QuestsPage />, { wrapper });
 
     expect(screen.getByText(/No quests match/)).toBeInTheDocument();
+  });
+
+  it('renders management control buttons', () => {
+    mockUseQuests.mockReturnValue({
+      quests: sampleQuests,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    render(<QuestsPage />, { wrapper });
+
+    expect(screen.getByText('Randomize Assignments')).toBeInTheDocument();
+    expect(screen.getByText('Reset All Quests')).toBeInTheDocument();
+  });
+
+  it('renders advance buttons on pending and active quests', () => {
+    mockUseQuests.mockReturnValue({
+      quests: sampleQuests,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    render(<QuestsPage />, { wrapper });
+
+    expect(screen.getByText('Advance → Active')).toBeInTheDocument();
+    expect(screen.getByText('Advance → Completed')).toBeInTheDocument();
   });
 });
