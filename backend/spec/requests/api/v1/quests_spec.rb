@@ -26,6 +26,18 @@ RSpec.describe "Api::V1::Quests", type: :request do
       get "/api/v1/quests", params: { per_page: 2 }
       expect(response.parsed_body.length).to eq(2)
     end
+
+    it "returns progress as a number, not a string" do
+      get "/api/v1/quests"
+      progress_values = response.parsed_body.map { |q| q["progress"] }
+      expect(progress_values).to all(be_a(Numeric))
+    end
+
+    it "returns success_chance as a number or nil, not a string" do
+      get "/api/v1/quests"
+      success_chances = response.parsed_body.map { |q| q["success_chance"] }.compact
+      expect(success_chances).to all(be_a(Numeric))
+    end
   end
 
   describe "GET /api/v1/quests/:id" do
@@ -53,6 +65,16 @@ RSpec.describe "Api::V1::Quests", type: :request do
     it "includes success_chance" do
       get "/api/v1/quests/#{quest.id}"
       expect(response.parsed_body).to have_key("success_chance")
+    end
+
+    it "returns progress as a number, not a string" do
+      get "/api/v1/quests/#{quest.id}"
+      expect(response.parsed_body["progress"]).to be_a(Numeric)
+    end
+
+    it "returns success_chance as a number, not a string" do
+      get "/api/v1/quests/#{quest.id}"
+      expect(response.parsed_body["success_chance"]).to be_a(Numeric)
     end
 
     it "returns 404 for unknown quest" do

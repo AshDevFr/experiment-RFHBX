@@ -59,7 +59,7 @@ module Api
       def quest_detail(quest)
         quest.as_json.merge(
           "members" => quest.characters.as_json(only: %i[id name race level status]),
-          "success_chance" => quest.success_chance
+          "success_chance" => quest.success_chance&.to_f
         )
       end
 
