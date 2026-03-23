@@ -22,12 +22,13 @@ function AuthenticatedLayout() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      const searchStr = location.searchStr ?? '';
       navigate({
         to: '/login',
-        search: { returnTo: location.pathname + location.search },
+        search: { returnTo: location.pathname + searchStr },
       });
     }
-  }, [isLoading, isAuthenticated, navigate, location.pathname, location.search]);
+  }, [isLoading, isAuthenticated, navigate, location.pathname, location.searchStr]);
 
   if (isLoading) {
     return (
