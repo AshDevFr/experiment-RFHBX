@@ -59,6 +59,15 @@ export function SauronPage() {
         </Center>
       )}
 
+      {/* Connected but no broadcast received yet */}
+      {connectionStatus === 'connected' && !latestGaze && (
+        <Center h={200}>
+          <Text c="dimmed" size="sm" data-testid="empty-state">
+            No threat activity detected. Watching…
+          </Text>
+        </Center>
+      )}
+
       {/* Live threat indicator */}
       {latestGaze && (
         <Stack gap="lg">

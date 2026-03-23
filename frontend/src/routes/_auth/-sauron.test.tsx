@@ -60,7 +60,21 @@ describe('SauronPage', () => {
     expect(screen.getByText(/Awaiting signal/)).toBeInTheDocument();
   });
 
-  it('renders the threat indicator when a gaze is received', () => {
+  it('shows empty state when connected but no broadcast received yet', () => {
+    mockUseSauronGazeChannel.mockReturnValue({
+      latestGaze: null,
+      connectionStatus: 'connected',
+    });
+
+    render(<SauronPage />, { wrapper });
+
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(screen.getByText(/No threat activity detected/)).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-state')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('disconnect-banner')).not.toBeInTheDocument();
+  });
+
+  it('replaces empty state with threat indicator when a gaze arrives', () => {
     mockUseSauronGazeChannel.mockReturnValue({
       latestGaze: sampleGaze,
       connectionStatus: 'connected',
