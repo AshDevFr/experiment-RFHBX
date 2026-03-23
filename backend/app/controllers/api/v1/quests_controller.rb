@@ -7,9 +7,9 @@ module Api
 
       # GET /api/v1/quests
       def index
-        quests = Quest.all.order(:title)
+        quests = Quest.includes(:characters).all.order(:title)
         quests = quests.where(status: params[:status]) if params[:status].present?
-        render json: paginate(quests)
+        render json: paginate(quests).map { |q| quest_detail(q) }
       end
 
       # GET /api/v1/quests/:id
@@ -67,13 +67,16 @@ module Api
           QuestMembership.delete_all
           Character.update_all(status: "idle")
 
+          assigned_ids = []
           quests.each do |quest|
             count = rand(2..4)
             assigned = available_characters.sample(count)
             assigned.each do |character|
               QuestMembership.create!(quest: quest, character: character)
+              assigned_ids << character.id
             end
           end
+          Character.where(id: assigned_ids.uniq).update_all(status: "on_quest")
         end
 
         render json: { message: "Quest assignments randomized", count: quests.count }
