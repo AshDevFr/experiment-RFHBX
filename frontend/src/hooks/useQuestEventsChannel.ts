@@ -48,7 +48,12 @@ export function useQuestEventsChannel(questId?: number): UseQuestEventsChannelRe
     });
 
     return () => {
-      subscriptionRef.current?.unsubscribe();
+      try {
+        subscriptionRef.current?.unsubscribe();
+      } catch {
+        // Subscription may already be removed if the consumer was disconnected
+        // (e.g. token refresh) before this cleanup ran.
+      }
       subscriptionRef.current = null;
     };
   }, [consumer, questId]);

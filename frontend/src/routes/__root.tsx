@@ -3,9 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { createRootRouteWithContext, Link, Outlet, useRouterState } from '@tanstack/react-router';
 import type { AuthContextValue } from '../auth/AuthContext';
 import { useAuth } from '../auth/AuthProvider';
-import { CableStatus } from '../components/CableStatus';
 import { UserInfo } from '../components/UserInfo';
-import { useQuestEventsChannel } from '../hooks/useQuestEventsChannel';
 import { useThemeStore } from '../store/themeStore';
 
 // ---------------------------------------------------------------------------
@@ -28,11 +26,6 @@ const NAV_LINKS = [
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function CableStatusWidget() {
-  const { connectionStatus } = useQuestEventsChannel();
-  return <CableStatus status={connectionStatus} />;
-}
 
 function AppNavLink({ to, label }: { to: string; label: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -88,7 +81,6 @@ function RootLayout() {
             </Text>
           </Group>
           <Group>
-            <CableStatusWidget />
             <UserInfo />
             <ActionIcon
               variant="outline"

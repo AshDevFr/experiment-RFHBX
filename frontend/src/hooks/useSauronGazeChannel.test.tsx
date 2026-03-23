@@ -83,4 +83,14 @@ describe('useSauronGazeChannel', () => {
     unmount();
     expect(mockUnsubscribe).toHaveBeenCalledOnce();
   });
+
+  it('does not throw when unsubscribe fails on unmount (consumer already disconnected)', () => {
+    mockUnsubscribe.mockImplementationOnce(() => {
+      throw new Error(
+        'Unable to find subscription with identifier: {"channel":"SauronGazeChannel"}',
+      );
+    });
+    const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
+    expect(() => unmount()).not.toThrow();
+  });
 });
