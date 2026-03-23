@@ -193,13 +193,15 @@ components:
           nullable: true
           example: Mordor
         progress:
-          type: string
-          example: '0.0000'
+          type: number
+          format: float
+          example: 0.0
           description: Decimal (0–1 scale)
         success_chance:
-          type: string
+          type: number
+          format: float
           nullable: true
-          example: '0.4550'
+          example: 0.45
           description: Decimal success probability (0–1 scale), null if uncalculated
         quest_type:
           type: string
@@ -287,8 +289,9 @@ components:
           type: string
           example: Rohan
         progress:
-          type: string
-          example: '0.0'
+          type: number
+          format: float
+          example: 0.0
         quest_type:
           type: string
           enum:

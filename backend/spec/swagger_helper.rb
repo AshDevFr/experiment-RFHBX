@@ -106,10 +106,9 @@ RSpec.configure do |config|
               status: { type: :string, enum: %w[pending active completed failed], example: "active" },
               danger_level: { type: :integer, minimum: 1, maximum: 10, example: 10 },
               region: { type: :string, nullable: true, example: "Mordor" },
-              # decimal columns — Rails serializes as strings to preserve precision
-              progress: { type: :string, example: "0.0000", description: "Decimal (0–1 scale)" },
+              progress: { type: :number, format: :float, example: 0.0, description: "Decimal (0–1 scale)" },
               success_chance: {
-                type: :string, nullable: true, example: "0.4550",
+                type: :number, format: :float, nullable: true, example: 0.45,
                 description: "Decimal success probability (0–1 scale), null if uncalculated"
               },
               quest_type: { type: :string, enum: %w[campaign random], example: "campaign" },
@@ -158,7 +157,7 @@ RSpec.configure do |config|
               status: { type: :string, enum: %w[pending active completed failed] },
               danger_level: { type: :integer, minimum: 1, maximum: 10, example: 8 },
               region: { type: :string, example: "Rohan" },
-              progress: { type: :string, example: "0.0" },
+              progress: { type: :number, format: :float, example: 0.0 },
               quest_type: { type: :string, enum: %w[campaign random] },
               campaign_order: { type: :integer, example: 2 },
               attempts: { type: :integer, example: 0 }
