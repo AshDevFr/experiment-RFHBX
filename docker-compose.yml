@@ -131,8 +131,10 @@ services:
       - "5173:5173"
     environment:
       VITE_API_BASE_URL: http://backend:3000
-      # Dev auth bypass — set to "true" to show the Dev Login button
-      VITE_DEV_AUTH_BYPASS: ${VITE_DEV_AUTH_BYPASS:-false}
+      # Dev auth bypass — set DEV_AUTH_BYPASS="true" in .env to show the Dev Login button.
+      # Note: sourced from DEV_AUTH_BYPASS (not VITE_DEV_AUTH_BYPASS) so that a single
+      # flag in .env controls both the backend and the frontend container.
+      VITE_DEV_AUTH_BYPASS: ${DEV_AUTH_BYPASS:-false}
     depends_on:
       - backend
 
