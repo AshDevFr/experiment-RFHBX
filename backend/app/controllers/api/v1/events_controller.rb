@@ -30,10 +30,12 @@ module Api
       private
 
       def serialize_event(event)
+        return nil if event.nil?
+
         {
           id: event.id,
           quest_id: event.quest_id,
-          quest_title: event.quest.title,
+          quest_title: event.quest&.title || "Unknown",
           event_type: event.event_type,
           message: event.message,
           data: event.data,
