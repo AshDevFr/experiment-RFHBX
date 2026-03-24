@@ -59,4 +59,45 @@ RSpec.describe QuestEvent, type: :model do
       expect(event.event_type).to eq("completed")
     end
   end
+
+  describe "scopes" do
+    describe ".by_event_type" do
+      it "filters events by a single event_type" do
+        quest = create(:quest)
+        started   = create(:quest_event, quest: quest, event_type: :started)
+        _progress = create(:quest_event, quest: quest, event_type: :progress)
+
+        expect(described_class.by_event_type("started")).to contain_exactly(started)
+      end
+    end
+
+    describe ".by_quest" do
+      it "filters events by quest_id" do
+        quest_a = create(:quest)
+        quest_b = create(:quest)
+        event_a = create(:quest_event, quest: quest_a)
+        _event_b = create(:quest_event, quest: quest_b)
+
+        expect(described_class.by_quest(quest_a.id)).to contain_exactly(event_a)
+      end
+    end
+
+    describe ".by_quest_title" do
+      it "filters events by case-insensitive partial quest title match" do
+        ring_quest  = create(:quest, title: "Destroy the One Ring")
+        shire_quest = create(:quest, title: "Scout the Shire")
+        ring_event  = create(:quest_event, quest: ring_quest)
+        _shire      = create(:quest_event, quest: shire_quest)
+
+        expect(described_class.by_quest_title("ring")).to contain_exactly(ring_event)
+      end
+
+      it "is case-insensitive" do
+        quest = create(:quest, title: "Destroy the One Ring")
+        event = create(:quest_event, quest: quest)
+
+        expect(described_class.by_quest_title("RING")).to contain_exactly(event)
+      end
+    end
+  end
 end

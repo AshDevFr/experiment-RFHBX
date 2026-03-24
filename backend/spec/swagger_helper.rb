@@ -261,6 +261,43 @@ RSpec.configure do |config|
             required: %w[id quest_id event_type]
           },
 
+          QuestEventWithQuest: {
+            allOf: [
+              { "$ref" => "#/components/schemas/QuestEvent" },
+              {
+                type: :object,
+                description: "Quest event with the parent quest title included",
+                properties: {
+                  quest_title: { type: :string, example: "Destroy the One Ring" }
+                },
+                required: %w[quest_title]
+              }
+            ]
+          },
+
+          EventsResponse: {
+            type: :object,
+            description: "Paginated list of quest events",
+            properties: {
+              events: {
+                type: :array,
+                items: { "$ref" => "#/components/schemas/QuestEventWithQuest" }
+              },
+              meta: {
+                type: :object,
+                description: "Pagination metadata",
+                properties: {
+                  total: { type: :integer, example: 150, description: "Total number of matching events" },
+                  page: { type: :integer, example: 1, description: "Current page number" },
+                  per_page: { type: :integer, example: 25, description: "Results per page" },
+                  total_pages: { type: :integer, example: 6, description: "Total number of pages" }
+                },
+                required: %w[total page per_page total_pages]
+              }
+            },
+            required: %w[events meta]
+          },
+
           SimulationConfig: {
             type: :object,
             description: "Global simulation configuration (singleton)",

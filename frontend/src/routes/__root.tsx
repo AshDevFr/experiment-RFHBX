@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { to: '/quests' as const, label: 'QUESTS' },
   { to: '/fellowship' as const, label: 'FELLOWSHIP' },
   { to: '/sauron' as const, label: 'SAURON' },
+  { to: '/history' as const, label: 'HISTORY' },
 ];
 
 // ---------------------------------------------------------------------------
