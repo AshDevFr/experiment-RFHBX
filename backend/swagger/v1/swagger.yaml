@@ -443,6 +443,53 @@ components:
       - id
       - quest_id
       - event_type
+    QuestEventWithQuest:
+      allOf:
+      - "$ref": "#/components/schemas/QuestEvent"
+      - type: object
+        description: Quest event with the parent quest title included
+        properties:
+          quest_title:
+            type: string
+            example: Destroy the One Ring
+        required:
+        - quest_title
+    EventsResponse:
+      type: object
+      description: Paginated list of quest events
+      properties:
+        events:
+          type: array
+          items:
+            "$ref": "#/components/schemas/QuestEventWithQuest"
+        meta:
+          type: object
+          description: Pagination metadata
+          properties:
+            total:
+              type: integer
+              example: 150
+              description: Total number of matching events
+            page:
+              type: integer
+              example: 1
+              description: Current page number
+            per_page:
+              type: integer
+              example: 25
+              description: Results per page
+            total_pages:
+              type: integer
+              example: 6
+              description: Total number of pages
+          required:
+          - total
+          - page
+          - per_page
+          - total_pages
+      required:
+      - events
+      - meta
     SimulationConfig:
       type: object
       description: Global simulation configuration (singleton)
@@ -838,7 +885,7 @@ paths:
       - Events
       operationId: listEvents
       description: Returns a paginated list of quest events across all quests. Supports
-        filtering by event_type and quest_id.
+        filtering by event_type, quest_id, and quest_title.
       parameters:
       - name: event_type
         in: query
@@ -857,7 +904,13 @@ paths:
         schema:
           type: integer
         required: false
-        description: Filter events by quest
+        description: Filter events by quest ID
+      - name: quest_title
+        in: query
+        schema:
+          type: string
+        required: false
+        description: Filter events by quest title (case-insensitive partial match)
       - name: page
         in: query
         schema:
@@ -874,13 +927,11 @@ paths:
         description: 'Results per page (max: 100, default: 25)'
       responses:
         '200':
-          description: events retrieved
+          description: paginated results
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/QuestEvent"
+                "$ref": "#/components/schemas/EventsResponse"
   "/api/health":
     get:
       summary: Check API health
