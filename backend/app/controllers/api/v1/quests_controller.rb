@@ -54,7 +54,7 @@ module Api
         Quest.transaction do
           QuestMembership.delete_all
           Quest.update_all(status: "pending", progress: 0.0, attempts: 0)
-          Character.update_all(status: "idle")
+          Character.update_all(status: "idle", level: 0, xp: 0)
         end
 
         render json: { message: "All quests reset to pending state", count: Quest.count }
