@@ -330,4 +330,41 @@ RSpec.describe QuestTickWorker, type: :job do
       expect { worker.send(:broadcast_quest_update, quest, :completed) }.not_to raise_error
     end
   end
+
+  describe "quest success triggers QuestAutoStartWorker" do
+    let!(:quest) { create(:quest, :active, danger_level: 1, progress: 0.99) }
+    let!(:character) do
+      create(:character, status: :on_quest, strength: 20, wisdom: 20, endurance: 20, level: 1, xp: 0)
+    end
+
+    before do
+      create(:quest_membership, quest: quest, character: character)
+      config.update!(progress_min: 0.05, progress_max: 0.1)
+      allow_any_instance_of(QuestTickWorker).to receive(:rand).with(100.0).and_return(1.0)
+      allow_any_instance_of(QuestTickWorker).to receive(:rand).with(no_args).and_return(0.5)
+    end
+
+    it "enqueues QuestAutoStartWorker after a successful quest completion" do
+      expect { subject.perform }.to change(QuestAutoStartWorker.jobs, :size).by(1)
+    end
+  end
+
+  describe "campaign → random mode transition within the same tick" do
+    before do
+      config.update!(mode: :campaign)
+      # All campaign quests are already completed — advance_campaign will switch
+      # to random mode; ensure_random_quest should then run immediately.
+      create(:quest, quest_type: :campaign, campaign_order: 1, status: :completed)
+      create_list(:character, 3, status: :idle)
+    end
+
+    it "switches to random mode when all campaign quests are completed" do
+      subject.perform
+      expect(config.reload.mode).to eq("random")
+    end
+
+    it "starts a random quest in the same tick rather than waiting for the next cron run" do
+      expect { subject.perform }.to change { Quest.where(quest_type: :random, status: :active).count }.by(1)
+    end
+  end
 end

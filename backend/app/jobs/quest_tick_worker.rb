@@ -93,6 +93,12 @@ class QuestTickWorker
     )
 
     broadcast_quest_update(quest, :completed)
+
+    # Immediately enqueue auto-start so the next quest begins without waiting
+    # for the next cron tick.  The worker is idempotent: if advance_campaign /
+    # ensure_random_quest below already starts the next quest in this same tick,
+    # QuestAutoStartWorker will detect the active quest and exit early.
+    QuestAutoStartWorker.perform_async
   end
 
   def handle_failure(quest)
@@ -153,8 +159,10 @@ class QuestTickWorker
     if next_quest
       activate_campaign_quest(next_quest, config)
     else
-      # Campaign complete — switch to random mode
+      # Campaign complete — switch to random mode and immediately try to start a
+      # random quest in the same tick rather than waiting for the next cron run.
       config.update!(mode: :random)
+      ensure_random_quest(config)
     end
   end
 
@@ -187,7 +195,7 @@ class QuestTickWorker
     broadcast_quest_update(quest, :started)
   end
 
-  def ensure_random_quest(config)
+  def ensure_random_quest(config) # rubocop:disable Lint/UnusedMethodArgument
     return if Quest.where(quest_type: :random, status: :active).exists?
 
     idle_characters = Character.where(status: :idle)

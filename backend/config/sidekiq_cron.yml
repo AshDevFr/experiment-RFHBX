@@ -18,3 +18,9 @@ eye_of_sauron:
   class: EyeOfSauronWorker
   queue: default
   description: "Sauron's Gaze — scans active regions every minute and creates threat events"
+
+quest_auto_start:
+  cron: "<%= ENV.fetch('QUEST_AUTO_START_CRON', '*/5 * * * *') %>"
+  class: QuestAutoStartWorker
+  queue: critical
+  description: "Safety-net: starts the next quest if no quest is active and the simulation is running"
