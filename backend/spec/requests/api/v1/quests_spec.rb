@@ -115,6 +115,14 @@ RSpec.describe "Api::V1::Quests", type: :request do
       expect(quest.reload.title).to eq("New Title")
     end
 
+    it "returns members in the response" do
+      character = create(:character)
+      create(:quest_membership, quest: quest, character: character)
+      patch "/api/v1/quests/#{quest.id}", params: { quest: { title: "New Title" } }
+      expect(response.parsed_body["members"]).to be_an(Array)
+      expect(response.parsed_body["members"].first["id"]).to eq(character.id)
+    end
+
     it "returns 422 with invalid params" do
       patch "/api/v1/quests/#{quest.id}", params: { quest: { title: "" } }
       expect(response).to have_http_status(:unprocessable_entity)
@@ -123,6 +131,73 @@ RSpec.describe "Api::V1::Quests", type: :request do
     it "returns 404 for unknown quest" do
       patch "/api/v1/quests/0", params: { quest: { title: "X" } }
       expect(response).to have_http_status(:not_found)
+    end
+
+    context "when transitioning from pending to active (quest start)" do
+      let!(:idle_characters) { create_list(:character, 3, status: "idle") }
+
+      it "creates QuestMembership records for idle characters" do
+        expect {
+          patch "/api/v1/quests/#{quest.id}", params: { quest: { status: "active" } }
+        }.to change(QuestMembership, :count).by(3)
+      end
+
+      it "sets assigned characters to on_quest status" do
+        patch "/api/v1/quests/#{quest.id}", params: { quest: { status: "active" } }
+        assigned_ids = QuestMembership.where(quest: quest).pluck(:character_id)
+        expect(Character.where(id: assigned_ids).pluck(:status).uniq).to eq(["on_quest"])
+      end
+
+      it "returns the assigned members in the response" do
+        patch "/api/v1/quests/#{quest.id}", params: { quest: { status: "active" } }
+        expect(response.parsed_body["members"]).to be_an(Array)
+        expect(response.parsed_body["members"].length).to eq(3)
+      end
+
+      it "returns an empty members array when no idle characters are available" do
+        Character.update_all(status: "on_quest")
+        patch "/api/v1/quests/#{quest.id}", params: { quest: { status: "active" } }
+        expect(response.parsed_body["members"]).to eq([])
+      end
+
+      it "does not reassign characters that already have memberships" do
+        existing_char = idle_characters.first
+        create(:quest_membership, quest: quest, character: existing_char)
+
+        expect {
+          patch "/api/v1/quests/#{quest.id}", params: { quest: { status: "active" } }
+        }.to change(QuestMembership, :count).by(2)
+      end
+    end
+
+    context "when quest is already active" do
+      let!(:active_quest) { create(:quest, :active) }
+
+      it "does not auto-assign characters when updating a non-pending quest" do
+        create_list(:character, 3, status: "idle")
+        expect {
+          patch "/api/v1/quests/#{active_quest.id}", params: { quest: { title: "Updated" } }
+        }.not_to change(QuestMembership, :count)
+      end
+    end
+  end
+
+  describe "GET /api/v1/quests (index includes members)" do
+    let!(:quest) { create(:quest) }
+    let!(:character) { create(:character) }
+
+    before { create(:quest_membership, quest: quest, character: character) }
+
+    it "includes a members array for each quest" do
+      get "/api/v1/quests"
+      bodies = response.parsed_body
+      expect(bodies).to all(have_key("members"))
+    end
+
+    it "populates members with assigned characters" do
+      get "/api/v1/quests"
+      quest_body = response.parsed_body.find { |q| q["id"] == quest.id }
+      expect(quest_body["members"].first["id"]).to eq(character.id)
     end
   end
 

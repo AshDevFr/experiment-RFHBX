@@ -20,7 +20,7 @@ import { QuestDetailModal } from '../../components/QuestDetailModal';
 import { useQuestEventsChannel } from '../../hooks/useQuestEventsChannel';
 import { useQuests } from '../../hooks/useQuests';
 import { api } from '../../lib/api';
-import type { Quest } from '../../schemas/quest';
+import { type Quest, questSchema } from '../../schemas/quest';
 
 export const Route = createFileRoute('/_auth/quests')({
   component: QuestsPage,
@@ -117,13 +117,12 @@ export function QuestsPage() {
   const handleStartQuest = useCallback(async (questId: number) => {
     setStartError(null);
     try {
-      await api.patch(`/api/v1/quests/${questId}`, {
+      const response = await api.patch<unknown>(`/api/v1/quests/${questId}`, {
         quest: { status: 'active' },
       });
-      const apply = (q: Quest): Quest =>
-        q.id === questId ? { ...q, status: 'active' as const } : q;
-      setLiveQuests((prev) => prev.map(apply));
-      setSelectedQuest((prev) => (prev ? apply(prev) : null));
+      const updated = questSchema.parse(response.data);
+      setLiveQuests((prev) => prev.map((q) => (q.id === questId ? updated : q)));
+      setSelectedQuest(updated);
       notifications.show({
         title: 'Quest Started',
         message: 'Quest is now active',

@@ -29,8 +29,10 @@ module Api
 
       # PATCH /api/v1/quests/:id
       def update
+        was_pending = @quest.pending?
         if @quest.update(quest_params)
-          render json: @quest
+          assign_idle_characters(@quest) if was_pending && @quest.active?
+          render json: quest_detail(@quest)
         else
           render json: { errors: @quest.errors.full_messages }, status: :unprocessable_entity
         end
@@ -101,6 +103,16 @@ module Api
           "members" => quest.characters.as_json(only: %i[id name race level status]),
           "success_chance" => quest.success_chance&.to_f
         )
+      end
+
+      def assign_idle_characters(quest)
+        idle_characters = Character.where(status: :idle).limit(4)
+        idle_characters.each do |character|
+          QuestMembership.find_or_create_by!(quest: quest, character: character) do |m|
+            m.role = "Adventurer"
+          end
+          character.update!(status: :on_quest)
+        end
       end
 
       def paginate(scope)

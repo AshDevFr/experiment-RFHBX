@@ -96,4 +96,20 @@ describe('QuestDetailModal', () => {
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
+
+  it('shows empty state message when members array is present but empty', () => {
+    const noMembers: Quest = { ...sampleQuest, members: [] };
+    render(<QuestDetailModal quest={noMembers} onClose={vi.fn()} />, { wrapper });
+
+    expect(screen.getByTestId('no-members-message')).toBeInTheDocument();
+    expect(screen.getByText('No members assigned to this quest.')).toBeInTheDocument();
+  });
+
+  it('hides the members section when members is undefined', () => {
+    const noMembersField: Quest = { ...sampleQuest, members: undefined };
+    render(<QuestDetailModal quest={noMembersField} onClose={vi.fn()} />, { wrapper });
+
+    expect(screen.queryByTestId('no-members-message')).not.toBeInTheDocument();
+    expect(screen.queryByText('Members')).not.toBeInTheDocument();
+  });
 });
