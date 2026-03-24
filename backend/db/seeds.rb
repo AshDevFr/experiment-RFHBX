@@ -589,7 +589,9 @@ ActiveRecord::Base.transaction do
   puts "  #{Artifact.count} artifacts present."
 
   # ---------------------------------------------------------------------------
-  # 4. Quest Memberships — Fellowship on "Destroy the One Ring"
+  # 4. Quest Memberships
+  #    a) Fellowship on "Destroy the One Ring"
+  #    b) Ranger scouting party on "Hunt for Gollum" (active — must have members)
   # ---------------------------------------------------------------------------
   puts "Seeding quest memberships..."
 
@@ -610,6 +612,23 @@ ActiveRecord::Base.transaction do
   fellowship_roles.each do |character_name, role|
     character = Character.find_by!(name: character_name)
     QuestMembership.find_or_create_by!(character: character, quest: fellowship_quest) do |m|
+      m.role = role
+    end
+  end
+
+  # "Hunt for Gollum" is seeded as active — it must have at least one member so
+  # that QuestTickWorker does not skip it (a memberless active quest is invalid).
+  gollum_hunt = Quest.find_by!(title: "Hunt for Gollum")
+  gollum_hunt_roles = {
+    "Aragorn"  => "Ranger",
+    "Legolas"  => "Scout",
+    "Gimli"    => "Warrior",
+    "Gandalf"  => "Guide"
+  }
+
+  gollum_hunt_roles.each do |character_name, role|
+    character = Character.find_by!(name: character_name)
+    QuestMembership.find_or_create_by!(character: character, quest: gollum_hunt) do |m|
       m.role = role
     end
   end

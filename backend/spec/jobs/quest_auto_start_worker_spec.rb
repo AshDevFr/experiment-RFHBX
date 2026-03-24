@@ -90,11 +90,13 @@ RSpec.describe QuestAutoStartWorker, type: :job do
     end
 
     it "activates the next pending campaign quest" do
+      create_list(:character, 2, status: :idle)
       worker.perform
       expect(quest1.reload.status).to eq("active")
     end
 
     it "does not activate the second quest yet" do
+      create_list(:character, 2, status: :idle)
       worker.perform
       expect(quest2.reload.status).to eq("pending")
     end
@@ -114,6 +116,7 @@ RSpec.describe QuestAutoStartWorker, type: :job do
     end
 
     it "creates a :started QuestEvent" do
+      create_list(:character, 2, status: :idle)
       worker.perform
       event = QuestEvent.find_by(quest: quest1, event_type: :started)
       expect(event).to be_present
@@ -125,11 +128,11 @@ RSpec.describe QuestAutoStartWorker, type: :job do
       expect(config.reload.campaign_position).to eq(1)
     end
 
-    it "skips activation when no idle characters are available" do
-      # No characters — quest memberships stay empty, quest is still activated
-      # (the activation proceeds with an empty party; tested separately).
+    it "defers activation when no idle characters are available" do
+      # No characters — quest cannot be activated without a party; it stays pending
+      # until idle characters become available on a subsequent tick.
       worker.perform
-      expect(quest1.reload.status).to eq("active")
+      expect(quest1.reload.status).to eq("pending")
     end
   end
 

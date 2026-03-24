@@ -34,6 +34,11 @@ class QuestTickWorker
 
   def process_active_quests(config)
     Quest.where(status: :active).find_each do |quest|
+      if quest.quest_memberships.none?
+        Rails.logger.warn("[QuestTickWorker] Skipping memberless quest ##{quest.id}: #{quest.title.inspect}")
+        next
+      end
+
       ActiveRecord::Base.transaction do
         tick_quest(quest, config)
       end
@@ -186,6 +191,13 @@ class QuestTickWorker
           m.role = "Adventurer"
         end
       end
+    end
+
+    # Cannot activate without at least one member — skip and retry on the next tick.
+    if quest.quest_memberships.none?
+      Rails.logger.warn("[QuestTickWorker] Deferring campaign quest ##{quest.id} " \
+                        "(#{quest.title.inspect}): no idle characters available to form a party")
+      return
     end
 
     quest.characters.each do |character|

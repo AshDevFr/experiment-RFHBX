@@ -123,6 +123,13 @@ RSpec.describe "Quests", type: :request do
         let(:body) { { quest: { title: "" } } }
         run_test!
       end
+
+      response "422", "activating a memberless quest is rejected" do
+        schema "$ref" => "#/components/schemas/ValidationErrors"
+        let(:id) { create(:quest, status: :pending).id }
+        let(:body) { { quest: { status: "active" } } }
+        run_test!
+      end
     end
 
     delete "Delete a quest" do

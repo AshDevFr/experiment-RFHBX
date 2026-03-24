@@ -261,6 +261,7 @@ RSpec.describe QuestTickWorker, type: :job do
     end
 
     it "activates the next campaign quest when none are active" do
+      create_list(:character, 2, status: :idle)
       subject.perform
       expect(quest1.reload.status).to eq("active")
     end
@@ -320,6 +321,25 @@ RSpec.describe QuestTickWorker, type: :job do
       random_quest = Quest.where(quest_type: :random).last
       event = QuestEvent.find_by(quest: random_quest, event_type: :started)
       expect(event).to be_present
+    end
+  end
+
+  describe "memberless quest guard" do
+    let!(:memberless_quest) { create(:quest, :active, danger_level: 5, progress: 0.0) }
+
+    it "skips active quests that have no members" do
+      expect { subject.perform }.not_to change { memberless_quest.reload.progress.to_f }
+    end
+
+    it "logs a warning for each memberless quest" do
+      expect(Rails.logger).to receive(:warn).with(
+        /\[QuestTickWorker\] Skipping memberless quest ##{memberless_quest.id}/
+      )
+      subject.perform
+    end
+
+    it "does not create a progress event for memberless quests" do
+      expect { subject.perform }.not_to change(QuestEvent, :count)
     end
   end
 

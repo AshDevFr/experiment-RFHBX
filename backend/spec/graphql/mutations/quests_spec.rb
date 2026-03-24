@@ -82,6 +82,9 @@ RSpec.describe "GraphQL — quest mutations", type: :request do
     let!(:quest) { create(:quest, title: "Old Quest", danger_level: 3) }
 
     it "updates a quest with valid input" do
+      # Quest must have at least one member to be activated.
+      create(:quest_membership, quest: quest)
+
       mutation = <<~GQL
         mutation {
           updateQuest(id: #{quest.id}, input: {

@@ -154,10 +154,11 @@ RSpec.describe "Api::V1::Quests", type: :request do
         expect(response.parsed_body["members"].length).to eq(3)
       end
 
-      it "returns an empty members array when no idle characters are available" do
+      it "returns 422 when activating with no idle characters available" do
         Character.update_all(status: "on_quest")
         patch "/api/v1/quests/#{quest.id}", params: { quest: { status: "active" } }
-        expect(response.parsed_body["members"]).to eq([])
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body["errors"]).to include(/must have at least one member/)
       end
 
       it "does not reassign characters that already have memberships" do

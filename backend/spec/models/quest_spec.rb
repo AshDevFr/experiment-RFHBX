@@ -70,6 +70,60 @@ RSpec.describe Quest, type: :model do
     end
   end
 
+  describe "must_have_at_least_one_member_when_active validation" do
+    context "when quest is persisted and active" do
+      let(:quest) { create(:quest, :active) }
+
+      it "is invalid when it has no members" do
+        expect(quest).not_to be_valid
+        expect(quest.errors[:base]).to include("must have at least one member to be active")
+      end
+
+      it "is valid when it has at least one member" do
+        create(:quest_membership, quest: quest)
+        expect(quest).to be_valid
+      end
+    end
+
+    context "when quest is a new record" do
+      it "allows creating an active quest without members (members added post-creation)" do
+        quest = Quest.new(
+          title: "Test Quest",
+          status: :active,
+          danger_level: 5
+        )
+        # new_record? is true — validation is skipped so it only fires on subsequent saves
+        expect(quest.valid?).to be true
+      end
+    end
+
+    context "when quest is not active" do
+      it "allows a pending quest with no members" do
+        quest = create(:quest, status: :pending)
+        expect(quest).to be_valid
+      end
+
+      it "allows a completed quest with no members" do
+        quest = create(:quest, :completed)
+        expect(quest).to be_valid
+      end
+
+      it "allows a failed quest with no members" do
+        quest = create(:quest, :failed)
+        expect(quest).to be_valid
+      end
+    end
+
+    context "activating a memberless quest via update" do
+      it "rejects updating a pending memberless quest to active" do
+        quest = create(:quest, status: :pending)
+        quest.status = :active
+        expect(quest).not_to be_valid
+        expect(quest.errors[:base]).to include("must have at least one member to be active")
+      end
+    end
+  end
+
   describe "factory" do
     it "creates a valid quest" do
       expect(create(:quest)).to be_persisted

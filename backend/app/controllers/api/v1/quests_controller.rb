@@ -30,8 +30,13 @@ module Api
       # PATCH /api/v1/quests/:id
       def update
         was_pending = @quest.pending?
+        transitioning_to_active = was_pending && quest_params[:status].to_s == "active"
+
+        # Assign idle characters BEFORE saving the active status so the model
+        # validation (which requires at least one member on active quests) passes.
+        assign_idle_characters(@quest) if transitioning_to_active
+
         if @quest.update(quest_params)
-          assign_idle_characters(@quest) if was_pending && @quest.active?
           render json: quest_detail(@quest)
         else
           render json: { errors: @quest.errors.full_messages }, status: :unprocessable_entity

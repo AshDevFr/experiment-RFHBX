@@ -88,6 +88,13 @@ class QuestAutoStartWorker
       end
     end
 
+    # Cannot activate without at least one member — skip and retry on the next tick.
+    if quest.quest_memberships.none?
+      Rails.logger.warn("[QuestAutoStartWorker] Deferring campaign quest ##{quest.id} " \
+                        "(#{quest.title.inspect}): no idle characters available to form a party")
+      return
+    end
+
     quest.characters.each { |character| character.update!(status: :on_quest) }
     quest.update!(status: :active, progress: 0.0)
     config.update!(campaign_position: quest.campaign_order || 0)
