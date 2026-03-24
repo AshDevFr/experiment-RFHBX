@@ -150,8 +150,8 @@ RSpec.describe "db/seeds", type: :model do
       expect(SimulationConfig.current.mode).to eq "campaign"
     end
 
-    it "defaults to not running" do
-      expect(SimulationConfig.current.running).to be false
+    it "seeds with running enabled so Sidekiq workers process quests" do
+      expect(SimulationConfig.current.running).to be true
     end
 
     it "sets a positive tick_interval_seconds" do
