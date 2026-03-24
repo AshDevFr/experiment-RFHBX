@@ -13,10 +13,13 @@ Rails.application.routes.draw do
   # rswag-api engine (serves swagger files from swagger/)
   mount Rswag::Api::Engine => "/api-docs"
 
-  # Sidekiq Web UI — protected behind a Rack constraint that validates the
-  # Authorization: Bearer <token> header using the same JWT logic as the API.
-  # Unauthenticated requests receive a 404 (no route match) from Rails.
-  mount Sidekiq::Web => "/admin/sidekiq", constraints: SidekiqAuthConstraint.new
+  # Sidekiq Web UI — development only; not exposed in production.
+  # In production the route is not mounted at all, providing no attack surface.
+  # The previous constraint-based approach failed with DEV_AUTH_BYPASS=true
+  # because the constraint only understands OIDC JWTs, not dev bypass tokens.
+  if Rails.env.development?
+    mount Sidekiq::Web => "/admin/sidekiq"
+  end
 
   # GraphQL endpoint
   post "/graphql", to: "graphql#execute"

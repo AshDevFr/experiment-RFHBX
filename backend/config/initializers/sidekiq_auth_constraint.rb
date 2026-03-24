@@ -5,11 +5,20 @@
 # Used in routes.rb:
 #   mount Sidekiq::Web => "/admin/sidekiq", constraints: SidekiqAuthConstraint.new
 #
-# Any request without a valid Bearer token is rejected with HTTP 401 before
-# the Sidekiq Rack application handles it. If OIDC is not configured (e.g.
-# development without a provider), the constraint passes through.
+# Any request without a valid Bearer token is rejected before the Sidekiq Rack
+# application handles it. If OIDC is not configured (e.g. development without
+# a provider), the constraint passes through.
+#
+# NOTE: As of Issue #116 the Sidekiq route is only mounted in development
+# (no constraint needed there). This class is retained for future use if the
+# UI is ever exposed in a non-development environment behind proper auth.
 class SidekiqAuthConstraint
   def matches?(request)
+    # In development with DEV_AUTH_BYPASS active, allow unrestricted access.
+    # The Sidekiq UI is not mounted in production so there is no security
+    # regression — this guard exists purely for defense in depth.
+    return true if Rails.env.development? && ENV["DEV_AUTH_BYPASS"] == "true"
+
     header = request.get_header("HTTP_AUTHORIZATION") || request.get_header("AUTHORIZATION")
     return false unless header&.start_with?("Bearer ")
 
