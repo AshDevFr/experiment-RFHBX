@@ -133,7 +133,9 @@ describe('HistoryPage', () => {
 
       // Use within() to scope to badge elements, avoiding duplicate text in MultiSelect dropdown
       expect(within(screen.getByTestId('badge-started')).getByText('Started')).toBeInTheDocument();
-      expect(within(screen.getByTestId('badge-progress')).getByText('Progress')).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('badge-progress')).getByText('Progress'),
+      ).toBeInTheDocument();
       expect(
         within(screen.getByTestId('badge-completed')).getByText('Completed'),
       ).toBeInTheDocument();
