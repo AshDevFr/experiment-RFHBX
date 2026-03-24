@@ -83,6 +83,47 @@ services:
     stdin_open: true
     tty: true
 
+  # Sidekiq worker — processes background jobs and sidekiq-cron scheduled jobs
+  # (QuestTickWorker, EyeOfSauronWorker fire every minute when the simulation
+  # is running).  This service was previously missing, which is why quest
+  # progress was never advancing and the Eye of Sauron page showed no activity.
+  # Run alongside the backend: docker compose up backend sidekiq
+  sidekiq:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    volumes:
+      - ./backend:/app
+      - backend_bundle:/usr/local/bundle
+    environment:
+      RAILS_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
+      REDIS_URL: redis://redis:6379/0
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/palantir-queue
+      SQS_QUEUE_NAME: palantir-queue
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+      # OIDC / JWT authentication (Phase 6.1)
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}
+      OIDC_JWKS_CACHE_TTL: ${OIDC_JWKS_CACHE_TTL:-3600}
+      DEV_AUTH_BYPASS: ${DEV_AUTH_BYPASS:-false}
+    depends_on:
+      backend:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   # Shoryuken worker — processes SQS messages from the palantir-queue
   # Run separately: docker compose up shoryuken
   shoryuken:
