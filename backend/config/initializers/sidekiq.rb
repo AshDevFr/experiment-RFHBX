@@ -40,6 +40,12 @@ Sidekiq.configure_server do |config|
     rendered = ERB.new(File.read(cron_schedule_file)).result
     Sidekiq::Cron::Job.load_from_hash(YAML.safe_load(rendered) || {})
   end
+
+  # On server startup, immediately enqueue a quest auto-start check so that
+  # the simulation resumes without waiting up to 60 s for the next cron tick.
+  config.on(:startup) do
+    QuestAutoStartWorker.perform_async
+  end
 end
 
 Sidekiq.configure_client do |config|
