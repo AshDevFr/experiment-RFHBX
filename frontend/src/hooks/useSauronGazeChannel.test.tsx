@@ -78,9 +78,26 @@ describe('useSauronGazeChannel', () => {
     expect(result.current.connectionStatus).toBe('disconnected');
   });
 
-  it('unsubscribes on unmount', () => {
+  it('unsubscribes on unmount after subscription is confirmed', () => {
+    const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
+    act(() => capturedCallbacks.connected?.());
+    unmount();
+    expect(mockUnsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('does not call unsubscribe immediately if component unmounts before confirmation (race condition)', () => {
+    const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
+    // Unmount before connected() fires — must NOT send unsubscribe yet
+    unmount();
+    expect(mockUnsubscribe).not.toHaveBeenCalled();
+  });
+
+  it('issues a deferred unsubscribe when connected() fires after component has unmounted', () => {
     const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
     unmount();
+    expect(mockUnsubscribe).not.toHaveBeenCalled();
+    // Server confirms subscription after unmount — deferred cleanup fires
+    act(() => capturedCallbacks.connected?.());
     expect(mockUnsubscribe).toHaveBeenCalledOnce();
   });
 
@@ -91,6 +108,7 @@ describe('useSauronGazeChannel', () => {
       );
     });
     const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
+    act(() => capturedCallbacks.connected?.());
     expect(() => unmount()).not.toThrow();
   });
 });

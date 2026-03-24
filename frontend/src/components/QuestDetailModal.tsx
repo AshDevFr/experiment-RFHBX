@@ -81,25 +81,31 @@ export function QuestDetailModal({ quest, onClose, onStart }: QuestDetailModalPr
           </Stack>
         )}
 
-        {quest.members && quest.members.length > 0 && (
+        {quest.members !== undefined && (
           <>
             <Divider />
             <Text fw={600} size="sm">
               Members
             </Text>
-            {quest.members.map((m) => (
-              <Group key={m.id} gap="xs">
-                <Text size="sm">{m.name}</Text>
-                <Badge size="xs" variant="outline" color="violet">
-                  {m.race}
-                </Badge>
-                {m.level != null && (
-                  <Badge size="xs" variant="outline" color="blue">
-                    Lvl {m.level}
+            {quest.members.length === 0 ? (
+              <Text size="sm" c="dimmed" data-testid="no-members-message">
+                No members assigned to this quest.
+              </Text>
+            ) : (
+              quest.members.map((m) => (
+                <Group key={m.id} gap="xs">
+                  <Text size="sm">{m.name}</Text>
+                  <Badge size="xs" variant="outline" color="violet">
+                    {m.race}
                   </Badge>
-                )}
-              </Group>
-            ))}
+                  {m.level != null && (
+                    <Badge size="xs" variant="outline" color="blue">
+                      Lvl {m.level}
+                    </Badge>
+                  )}
+                </Group>
+              ))
+            )}
           </>
         )}
 
