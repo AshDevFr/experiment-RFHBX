@@ -65,8 +65,7 @@ RSpec.describe SidekiqAuthConstraint do
       before do
         allow(request).to receive(:get_header).with("HTTP_AUTHORIZATION").and_return("Bearer sometoken")
         allow(request).to receive(:get_header).with("AUTHORIZATION").and_return(nil)
-        oidc_config = instance_double(
-          OpenStruct,
+        oidc_config = double(
           issuer_url: "",
           jwks_cache_ttl: 300,
           audience: "test-client"
