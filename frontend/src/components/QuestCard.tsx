@@ -78,8 +78,16 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
           )}
         </Group>
 
-        {quest.progress != null && quest.status === 'active' && (
-          <Progress value={quest.progress} size="sm" color="blue" />
+        {quest.progress != null && (
+          <Progress
+            value={quest.progress}
+            size="sm"
+            color={STATUS_COLORS[quest.status] ?? 'gray'}
+            aria-label={`Quest progress: ${Math.round(quest.progress)}%`}
+            aria-valuenow={quest.progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          />
         )}
 
         {quest.members && quest.members.length > 0 && (
