@@ -34,7 +34,7 @@ The entire application — all seven phases — was **built by a team of AI agen
 - **Quest Dashboard** — real-time quest progress driven by background jobs
 - **Threat Monitor (Eye of Sauron)** — live threat-level feed via ActionCable
 - **Palantir Queue** — SQS-based event pipeline (ElasticMQ locally, real SQS in production)
-- **REST API** — full CRUD with OpenAPI docs and Scalar UI at `/api-docs`
+- **REST API** — full CRUD with OpenAPI docs and Scalar UI at `/api/docs`
 - **GraphQL API** — full query/mutation API with GraphiQL playground at `/graphiql`
 - **OIDC Authentication** — JWT-based auth with configurable provider; dev bypass for local work
 
@@ -109,7 +109,7 @@ Key variables:
 
 Once the backend is running:
 
-- **REST API (Scalar UI):** http://localhost:3000/api-docs
+- **REST API (Scalar UI):** http://localhost:3000/api/docs
 - **GraphQL Playground (GraphiQL):** http://localhost:3000/graphiql
 
 ---
