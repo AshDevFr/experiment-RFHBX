@@ -37,7 +37,12 @@ function dangerColor(level: number): string {
 export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
   const statusColor = STATUS_COLORS[quest.status] ?? 'gray';
   const nextStatus = STATUS_TRANSITIONS[quest.status];
-  const effectiveProgress = quest.status === 'completed' ? 100 : quest.progress;
+  const effectiveProgress =
+    quest.status === 'completed'
+      ? 100
+      : quest.progress != null
+        ? Math.round(quest.progress * 100)
+        : null;
 
   return (
     <Card

@@ -31,7 +31,12 @@ export function QuestDetailModal({ quest, onClose, onStart }: QuestDetailModalPr
   if (!quest) return null;
 
   const statusColor = STATUS_COLORS[quest.status] ?? 'gray';
-  const effectiveProgress = quest.status === 'completed' ? 100 : quest.progress;
+  const effectiveProgress =
+    quest.status === 'completed'
+      ? 100
+      : quest.progress != null
+        ? Math.round(quest.progress * 100)
+        : null;
 
   return (
     <Modal
