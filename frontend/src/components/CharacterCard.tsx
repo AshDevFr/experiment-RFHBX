@@ -6,16 +6,23 @@ interface CharacterCardProps {
   onClick: (character: Character) => void;
 }
 
-const STATUS_COLORS: Record<string, string> = {
+export const STATUS_COLORS: Record<string, string> = {
   idle: 'gray',
-  active: 'green',
   on_quest: 'blue',
-  injured: 'orange',
-  dead: 'red',
+  fallen: 'red',
+};
+
+export const STATUS_LABELS: Record<string, string> = {
+  idle: 'IDLE',
+  on_quest: 'ON QUEST',
+  fallen: 'FALLEN',
 };
 
 export function CharacterCard({ character, onClick }: CharacterCardProps) {
   const statusColor = STATUS_COLORS[character.status ?? 'idle'] ?? 'gray';
+  const statusLabel = character.status
+    ? (STATUS_LABELS[character.status] ?? character.status.toUpperCase())
+    : undefined;
 
   return (
     <Card
@@ -32,9 +39,9 @@ export function CharacterCard({ character, onClick }: CharacterCardProps) {
           <Text fw={700} size="md" style={{ flex: 1 }}>
             {character.name}
           </Text>
-          {character.status && (
+          {statusLabel && (
             <Badge color={statusColor} size="sm" variant="light">
-              {character.status}
+              {statusLabel}
             </Badge>
           )}
         </Group>

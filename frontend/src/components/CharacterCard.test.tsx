@@ -58,10 +58,31 @@ describe('CharacterCard', () => {
     expect(screen.queryByText(/^Lv\./)).not.toBeInTheDocument();
   });
 
-  it('renders the status badge', () => {
+  it('renders the status badge with human-readable label for idle', () => {
     render(<CharacterCard character={sampleCharacter} onClick={vi.fn()} />, { wrapper });
 
-    expect(screen.getByText('idle')).toBeInTheDocument();
+    expect(screen.getByText('IDLE')).toBeInTheDocument();
+  });
+
+  it('renders ON QUEST badge for on_quest status', () => {
+    const onQuestChar: Character = { ...sampleCharacter, status: 'on_quest' };
+    render(<CharacterCard character={onQuestChar} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.getByText('ON QUEST')).toBeInTheDocument();
+  });
+
+  it('renders FALLEN badge for fallen status', () => {
+    const fallenChar: Character = { ...sampleCharacter, status: 'fallen' };
+    render(<CharacterCard character={fallenChar} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.getByText('FALLEN')).toBeInTheDocument();
+  });
+
+  it('does not render a status badge when status is absent', () => {
+    const noStatus: Character = { id: 5, name: 'Unknown Wanderer', race: 'Man' };
+    render(<CharacterCard character={noStatus} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.queryByText('IDLE')).not.toBeInTheDocument();
   });
 
   it('calls onClick with the character when clicked', async () => {
