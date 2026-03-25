@@ -48,8 +48,8 @@ RSpec.describe "db/seeds", type: :model do
   end
 
   describe "Quest seeds" do
-    it "creates at least 10 quests" do
-      expect(Quest.count).to be >= 10
+    it "creates at least 20 quests" do
+      expect(Quest.count).to be >= 20
     end
 
     it "includes 'Destroy the One Ring'" do
@@ -81,6 +81,36 @@ RSpec.describe "db/seeds", type: :model do
     it "seeds all quests with zero progress" do
       Quest.find_each do |q|
         expect(q.progress.to_f).to eq(0.0), "Expected #{q.title} to have 0 progress, got #{q.progress}"
+      end
+    end
+
+    it "includes expanded catalog quests from the LOTR lore" do
+      expanded_titles = [
+        "A Short Cut to Mushrooms",
+        "The Riddles in the Dark",
+        "Warg Riders of Hollin",
+        "Flight to the Ford",
+        "Ambush at Amon Hen",
+        "The Council of Elrond",
+        "Dead Marshes Crossing",
+        "Lighting the Beacon Fires",
+        "Muster of Rohan",
+        "Reconnaissance of Osgiliath"
+      ]
+      expanded_titles.each do |title|
+        expect(Quest.find_by(title: title)).to be_present, "Expected to find quest: #{title}"
+      end
+    end
+
+    it "includes quests with danger levels 1 through 5 in the expanded catalog" do
+      expanded_danger_levels = Quest.where(campaign_order: 11..20).pluck(:danger_level).sort
+      expect(expanded_danger_levels).to include(1, 2, 3, 4, 5)
+    end
+
+    it "seeds all expanded quests with danger_level between 1 and 5" do
+      Quest.where(campaign_order: 11..20).find_each do |q|
+        expect(q.danger_level).to be_between(1, 5).inclusive,
+          "#{q.title} has danger_level #{q.danger_level}, expected 1–5"
       end
     end
   end

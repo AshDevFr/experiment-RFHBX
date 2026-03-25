@@ -6,7 +6,7 @@
 #
 # Structure:
 #   1. Characters  — 25 LOTR characters with stats, race, realm, title, status
-#   2. Quests      — 10 canonical quests in campaign_order with danger levels
+#   2. Quests      — 20 canonical quests in campaign_order with danger levels
 #   3. Artifacts   — 16 notable items with stat_bonus jsonb and corrupted flag
 #   4. SimulationConfig  — singleton config, running: false (clean blank state)
 #
@@ -433,6 +433,117 @@ ActiveRecord::Base.transaction do
       region: "The Shire",
       quest_type: "campaign",
       campaign_order: 10,
+      progress: 0.0,
+      attempts: 0
+    },
+    # ── Expanded catalog — varied danger levels 1–5 ───────────────────────────
+    {
+      title: "A Short Cut to Mushrooms",
+      description: "Slip through Farmer Maggot's fields to gather mushrooms and make it back to the road before his hounds catch the scent.",
+      status: "pending",
+      danger_level: 1,
+      region: "The Shire",
+      quest_type: "campaign",
+      campaign_order: 11,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "The Riddles in the Dark",
+      description: "Outwit Gollum in the pitch-black goblin tunnels beneath the Misty Mountains, staking life itself on a game of riddles.",
+      status: "pending",
+      danger_level: 2,
+      region: "Misty Mountains",
+      quest_type: "campaign",
+      campaign_order: 12,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Warg Riders of Hollin",
+      description: "Repel a fierce pack of Warg riders on the icy slopes above Hollin before the Fellowship can descend into the Mines of Moria.",
+      status: "pending",
+      danger_level: 3,
+      region: "Hollin",
+      quest_type: "campaign",
+      campaign_order: 13,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Flight to the Ford",
+      description: "Race west across Eriador with the Nine Riders in relentless pursuit and reach the Ford of Bruinen before the Ringwraiths can strike.",
+      status: "pending",
+      danger_level: 4,
+      region: "Eriador",
+      quest_type: "campaign",
+      campaign_order: 14,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Ambush at Amon Hen",
+      description: "Hold back the Uruk-hai raiding party at the Hill of Sight long enough for Frodo to escape alone across the Great River Anduin.",
+      status: "pending",
+      danger_level: 5,
+      region: "Amon Hen",
+      quest_type: "campaign",
+      campaign_order: 15,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "The Council of Elrond",
+      description: "Attend the great council in the Hall of Fire at Rivendell to forge an unlikely alliance and determine the fate of the One Ring.",
+      status: "pending",
+      danger_level: 1,
+      region: "Rivendell",
+      quest_type: "campaign",
+      campaign_order: 16,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Dead Marshes Crossing",
+      description: "Cross the treacherous Dead Marshes guided only by Gollum's whispers while resisting the lure of the pale corpse-lights below.",
+      status: "pending",
+      danger_level: 3,
+      region: "Emyn Muil",
+      quest_type: "campaign",
+      campaign_order: 17,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Lighting the Beacon Fires",
+      description: "Scale the White Mountains in the dead of night to relight the ancient beacon fires and summon the Rohirrim to Gondor's aid.",
+      status: "pending",
+      danger_level: 2,
+      region: "Gondor",
+      quest_type: "campaign",
+      campaign_order: 18,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Muster of Rohan",
+      description: "Ride across the vast plains of Rohan summoning every éored to the great muster at Dunharrow before the ride to Minas Tirith.",
+      status: "pending",
+      danger_level: 2,
+      region: "Rohan",
+      quest_type: "campaign",
+      campaign_order: 19,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Reconnaissance of Osgiliath",
+      description: "Scout the shattered ruins of Osgiliath and gather intelligence on Sauron's forces before the Nazgûl drive the last defenders back across the Anduin.",
+      status: "pending",
+      danger_level: 4,
+      region: "Gondor",
+      quest_type: "campaign",
+      campaign_order: 20,
       progress: 0.0,
       attempts: 0
     }
