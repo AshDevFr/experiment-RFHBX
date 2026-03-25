@@ -70,7 +70,7 @@ module Api
         if simulation_config.update(attrs)
           render json: simulation_config
         else
-          render json: { errors: simulation_config.errors.full_messages },
+          render json: { error: simulation_config.errors.full_messages.join(", ") },
                  status: :unprocessable_entity
         end
       end
