@@ -71,6 +71,18 @@ RSpec.describe "db/seeds", type: :model do
       orders = Quest.where(quest_type: "campaign").pluck(:campaign_order).compact
       expect(orders).to eq orders.uniq
     end
+
+    it "seeds all quests as pending (clean blank state)" do
+      Quest.find_each do |q|
+        expect(q.status).to eq("pending"), "Expected #{q.title} to be pending, got #{q.status}"
+      end
+    end
+
+    it "seeds all quests with zero progress" do
+      Quest.find_each do |q|
+        expect(q.progress.to_f).to eq(0.0), "Expected #{q.title} to have 0 progress, got #{q.progress}"
+      end
+    end
   end
 
   describe "Artifact seeds" do
@@ -114,30 +126,16 @@ RSpec.describe "db/seeds", type: :model do
   end
 
   describe "QuestMembership seeds" do
-    it "assigns the Fellowship to 'Destroy the One Ring'" do
-      quest = Quest.find_by!(title: "Destroy the One Ring")
-      expect(quest.characters.count).to eq 9
+    it "creates no quest memberships (clean blank state)" do
+      expect(QuestMembership.count).to eq 0
     end
 
-    it "gives Frodo the Ring Bearer role" do
-      frodo = Character.find_by!(name: "Frodo Baggins")
-      quest = Quest.find_by!(title: "Destroy the One Ring")
-      membership = QuestMembership.find_by!(character: frodo, quest: quest)
-      expect(membership.role).to eq "Ring Bearer"
-    end
-
-    it "gives Gandalf the Guide role" do
-      gandalf = Character.find_by!(name: "Gandalf")
-      quest   = Quest.find_by!(title: "Destroy the One Ring")
-      membership = QuestMembership.find_by!(character: gandalf, quest: quest)
-      expect(membership.role).to eq "Guide"
-    end
-
-    it "gives Sam the Companion role" do
-      sam   = Character.find_by!(name: "Samwise Gamgee")
-      quest = Quest.find_by!(title: "Destroy the One Ring")
-      membership = QuestMembership.find_by!(character: sam, quest: quest)
-      expect(membership.role).to eq "Companion"
+    it "leaves all characters unassigned (idle or fallen)" do
+      assignable_statuses = %w[idle fallen]
+      Character.find_each do |c|
+        expect(assignable_statuses).to include(c.status),
+          "#{c.name} should be idle or fallen after seed, got #{c.status}"
+      end
     end
   end
 
@@ -150,8 +148,8 @@ RSpec.describe "db/seeds", type: :model do
       expect(SimulationConfig.current.mode).to eq "campaign"
     end
 
-    it "seeds with running enabled so Sidekiq workers process quests" do
-      expect(SimulationConfig.current.running).to be true
+    it "seeds with running disabled (clean blank state — heroes auto-assigned when simulation starts)" do
+      expect(SimulationConfig.current.running).to be false
     end
 
     it "sets a positive tick_interval_seconds" do
@@ -170,6 +168,11 @@ RSpec.describe "db/seeds", type: :model do
       expect(Character.count).to eq character_count_before
       expect(Quest.count).to eq quest_count_before
       expect(Artifact.count).to eq artifact_count_before
+    end
+
+    it "does not create any memberships on re-seed" do
+      load Rails.root.join("db/seeds.rb")
+      expect(QuestMembership.count).to eq 0
     end
   end
 end
