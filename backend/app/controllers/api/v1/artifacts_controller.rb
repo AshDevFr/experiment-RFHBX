@@ -7,7 +7,9 @@ module Api
 
       # GET /api/v1/artifacts
       def index
-        artifacts = paginate(Artifact.all.order(:name))
+        scope = Artifact.all.order(:name)
+        scope = scope.where(character_id: params[:character_id]) if params[:character_id].present?
+        artifacts = paginate(scope)
         render json: artifacts
       end
 
