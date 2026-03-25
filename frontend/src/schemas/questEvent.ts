@@ -7,6 +7,7 @@ export const EVENT_TYPES = [
   'failed',
   'restarted',
   'artifact_found',
+  'level_up',
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
@@ -49,6 +50,7 @@ export const EVENT_TYPE_COLORS: Record<EventType, string> = {
   failed: 'red',
   restarted: 'orange',
   artifact_found: 'yellow',
+  level_up: 'gold',
 };
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -58,4 +60,5 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   failed: 'Failed',
   restarted: 'Restarted',
   artifact_found: 'Artifact Found',
+  level_up: 'Level Up',
 };

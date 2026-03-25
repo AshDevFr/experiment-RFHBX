@@ -10,11 +10,12 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { CharacterCard } from '../../components/CharacterCard';
 import { CharacterDetailModal } from '../../components/CharacterDetailModal';
 import { useCharacters } from '../../hooks/useCharacters';
+import { useQuestEventsChannel } from '../../hooks/useQuestEventsChannel';
 import type { Character } from '../../schemas/character';
 
 // ---------------------------------------------------------------------------
@@ -59,32 +60,61 @@ export function FellowshipPage() {
   });
 
   const { characters, isLoading, error } = useCharacters();
+  const [liveCharacters, setLiveCharacters] = useState<Character[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+
+  // Seed liveCharacters from the initial REST fetch.
+  useEffect(() => {
+    if (!isLoading && characters.length > 0) {
+      setLiveCharacters(characters);
+    }
+  }, [characters, isLoading]);
+
+  // Subscribe to global quest events and apply level_up patches in real time.
+  // When a level_up event arrives its `data` payload contains character_id and
+  // new_level, so we can update the matching character without a full refetch.
+  const { latestEvent } = useQuestEventsChannel();
+  useEffect(() => {
+    if (!latestEvent) return;
+    if ((latestEvent as { event_type?: string }).event_type !== 'level_up') return;
+
+    const data = (latestEvent as { data?: { character_id?: number; new_level?: number } }).data;
+    if (!data?.character_id || data.new_level == null) return;
+
+    const { character_id, new_level } = data;
+
+    const applyPatch = (c: Character): Character =>
+      c.id === character_id ? { ...c, level: new_level } : c;
+
+    setLiveCharacters((prev) => prev.map(applyPatch));
+    setSelectedCharacter((prev) => (prev ? applyPatch(prev) : null));
+  }, [latestEvent]);
 
   // Build filter options from the full character list.
   const raceOptions = useMemo(
-    () => [...new Set(characters.map((c) => c.race))].sort().map((r) => ({ value: r, label: r })),
-    [characters],
+    () =>
+      [...new Set(liveCharacters.map((c) => c.race))].sort().map((r) => ({ value: r, label: r })),
+    [liveCharacters],
   );
 
   const realmOptions = useMemo(
     () =>
-      [...new Set(characters.map((c) => c.realm).filter((r): r is string => Boolean(r)))]
+      [...new Set(liveCharacters.map((c) => c.realm).filter((r): r is string => Boolean(r)))]
         .sort()
         .map((r) => ({ value: r, label: r })),
-    [characters],
+    [liveCharacters],
   );
 
   // Client-side filtering.
   const filtered = useMemo(
     () =>
-      characters.filter((c) => {
+      liveCharacters.filter((c) => {
         const raceMatch = selectedRaces.length === 0 || selectedRaces.includes(c.race);
         const realmMatch =
           selectedRealms.length === 0 || (c.realm != null && selectedRealms.includes(c.realm));
         return raceMatch && realmMatch;
       }),
-    [characters, selectedRaces, selectedRealms],
+    [liveCharacters, selectedRaces, selectedRealms],
   );
 
   function handleRaceChange(values: string[]) {

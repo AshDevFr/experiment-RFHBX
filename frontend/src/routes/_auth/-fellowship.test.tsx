@@ -28,7 +28,20 @@ vi.mock('../../hooks/useCharacters', () => ({
   useCharacters: () => mockUseCharacters(),
 }));
 
+// ---------------------------------------------------------------------------
+// Mock useQuestEventsChannel so we can push synthetic level_up events.
+// ---------------------------------------------------------------------------
+let mockLatestEvent: Record<string, unknown> | null = null;
+
+vi.mock('../../hooks/useQuestEventsChannel', () => ({
+  useQuestEventsChannel: () => ({
+    latestEvent: mockLatestEvent,
+    connectionStatus: 'connected',
+  }),
+}));
+
 // Import the page component AFTER mocks are registered.
+import { act } from 'react';
 import { FellowshipPage } from './fellowship';
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -66,6 +79,7 @@ describe('FellowshipPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSearchParams = {};
+    mockLatestEvent = null;
   });
 
   afterEach(() => {
@@ -189,5 +203,56 @@ describe('FellowshipPage', () => {
 
     expect(screen.queryByTestId('character-card')).not.toBeInTheDocument();
     expect(screen.getByText(/No characters match/i)).toBeInTheDocument();
+  });
+
+  describe('real-time level_up updates', () => {
+    const withLevel = sampleCharacters.map((c, i) => ({ ...c, level: i + 1 }));
+
+    it('updates a character level when a level_up event arrives', async () => {
+      mockUseCharacters.mockReturnValue({
+        characters: withLevel,
+        isLoading: false,
+        error: null,
+      });
+
+      const { rerender } = render(<FellowshipPage />, { wrapper });
+
+      // Simulate a level_up event for Frodo (id=1), raising him to level 5
+      mockLatestEvent = {
+        event_type: 'level_up',
+        quest_id: 99,
+        data: { character_id: 1, new_level: 5 },
+      };
+
+      await act(async () => {
+        rerender(<FellowshipPage />);
+      });
+
+      // CharacterCard renders "Lv.5 · Ring Bearer" for Frodo after the update
+      expect(screen.getByText(/Lv\.5/)).toBeInTheDocument();
+    });
+
+    it('ignores events that are not level_up', async () => {
+      mockUseCharacters.mockReturnValue({
+        characters: withLevel,
+        isLoading: false,
+        error: null,
+      });
+
+      const { rerender } = render(<FellowshipPage />, { wrapper });
+
+      mockLatestEvent = {
+        event_type: 'progress',
+        quest_id: 99,
+        data: {},
+      };
+
+      await act(async () => {
+        rerender(<FellowshipPage />);
+      });
+
+      // Level should remain at original values — Frodo still at Lv.1
+      expect(screen.getByText(/Lv\.1/)).toBeInTheDocument();
+    });
   });
 });

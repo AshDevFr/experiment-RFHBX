@@ -39,9 +39,17 @@ class QuestTickWorker
         next
       end
 
+      # Collect level_up events created inside the transaction so we can
+      # broadcast them AFTER the transaction commits, avoiding premature
+      # broadcasts that could race ahead of the DB write.
+      @pending_level_up_events = []
+
       ActiveRecord::Base.transaction do
         tick_quest(quest, config)
       end
+
+      @pending_level_up_events.each { |e| QuestEventBroadcaster.broadcast(e) }
+      @pending_level_up_events = []
     end
   end
 
@@ -93,7 +101,7 @@ class QuestTickWorker
 
     quest.characters.each do |character|
       character.xp += xp_reward
-      check_level_up(character)
+      check_level_up(character, quest)
       character.status = :idle
       character.save!
     end
@@ -124,7 +132,7 @@ class QuestTickWorker
 
     quest.characters.each do |character|
       character.xp += xp_reward
-      check_level_up(character)
+      check_level_up(character, quest)
       character.save!
     end
 
@@ -153,7 +161,7 @@ class QuestTickWorker
     broadcast_quest_update(quest, :restarted)
   end
 
-  def check_level_up(character)
+  def check_level_up(character, quest = nil)
     loop do
       next_level = character.level + 1
       xp_threshold = next_level * 500
@@ -162,6 +170,22 @@ class QuestTickWorker
       character.level = next_level
       stat = %i[strength wisdom endurance].sample
       character.send(:"#{stat}=", character.send(stat) + 1)
+
+      next unless quest
+
+      event = QuestEvent.create!(
+        quest: quest,
+        event_type: :level_up,
+        message: "#{character.name} reached level #{next_level}! #{stat.to_s.capitalize} increased by 1.",
+        data: {
+          character_id: character.id,
+          character_name: character.name,
+          new_level: next_level,
+          stat_increased: stat.to_s
+        }
+      )
+      @pending_level_up_events ||= []
+      @pending_level_up_events << event
     end
   end
 
