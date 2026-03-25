@@ -8,11 +8,16 @@
 #   1. Characters  — 25 LOTR characters with stats, race, realm, title, status
 #   2. Quests      — 10 canonical quests in campaign_order with danger levels
 #   3. Artifacts   — 16 notable items with stat_bonus jsonb and corrupted flag
-#   4. Quest Memberships — Fellowship of the Ring assigned to quest #1
-#   5. SimulationConfig  — singleton config, running: true so ticks begin
+#   4. SimulationConfig  — singleton config, running: false (clean blank state)
 #
 # Idempotency: every record uses find_or_create_by!(name:) so running
 # `rails db:seed` twice is safe — no duplicates will be created.
+#
+# Clean-state guarantee: no QuestMembership records are created by seeds.
+# All quests start as pending with 0 progress. SimulationConfig defaults to
+# running: false. When the simulation is started (running: true), the
+# QuestAutoStartWorker and QuestTickWorker automatically detect pending quests
+# and auto-assign idle heroes to form a party.
 #
 # To extend: add entries to the arrays below and re-run `rails db:seed`.
 # =============================================================================
@@ -316,116 +321,120 @@ ActiveRecord::Base.transaction do
   # ---------------------------------------------------------------------------
   puts "Seeding quests..."
 
+  # All quests are seeded as pending with 0 progress and 0 attempts.
+  # The simulation workers (QuestTickWorker / QuestAutoStartWorker) will
+  # activate them in campaign_order and auto-assign idle heroes when the
+  # simulation is started.
   quests_data = [
     {
       title: "Escape the Old Forest",
       description: "Navigate the treacherous Old Forest and seek refuge with Tom Bombadil.",
-      status: "completed",
+      status: "pending",
       danger_level: 4,
       region: "Old Forest",
       quest_type: "campaign",
       campaign_order: 1,
-      progress: 1.0, # 1.0 = 100% complete (column is decimal(5,4), range 0.0–1.0)
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Hunt for Gollum",
       description: "Track down Gollum across the Wilderland to learn the truth of the One Ring.",
-      status: "active",
+      status: "pending",
       danger_level: 6,
       region: "Wilderness",
       quest_type: "campaign",
       campaign_order: 2,
-      progress: 0.47, # 47% complete
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Destroy the One Ring",
       description: "Bear the One Ring into the heart of Mordor and cast it into the fires of Mount Doom.",
-      status: "completed",
+      status: "pending",
       danger_level: 10,
       region: "Mordor",
       quest_type: "campaign",
       campaign_order: 3,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Retake Moria",
       description: "Attempt to reclaim the ancient dwarven halls of Khazad-dûm from the Balrog and Orcs.",
-      status: "failed",
+      status: "pending",
       danger_level: 9,
       region: "Moria",
       quest_type: "campaign",
       campaign_order: 4,
       progress: 0.0,
-      attempts: 1
+      attempts: 0
     },
     {
       title: "Defend Helm's Deep",
       description: "Hold the fortress of Helm's Deep against Saruman's ten-thousand-strong Uruk-hai army.",
-      status: "completed",
+      status: "pending",
       danger_level: 8,
       region: "Rohan",
       quest_type: "campaign",
       campaign_order: 5,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "March of the Ents",
       description: "Lead the Ents of Fangorn Forest to tear down Isengard and break Saruman's power.",
-      status: "completed",
+      status: "pending",
       danger_level: 7,
       region: "Isengard",
       quest_type: "campaign",
       campaign_order: 6,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Passage of the Paths of the Dead",
       description: "Summon the Dead Men of Dunharrow to fulfill their oath and turn the tide at Pelargir.",
-      status: "completed",
+      status: "pending",
       danger_level: 8,
       region: "White Mountains",
       quest_type: "campaign",
       campaign_order: 7,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Rescue from Cirith Ungol",
       description: "Infiltrate the tower of Cirith Ungol to rescue Frodo from the Orc garrison.",
-      status: "completed",
+      status: "pending",
       danger_level: 9,
       region: "Mordor",
       quest_type: "campaign",
       campaign_order: 8,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Assault on the Black Gate",
       description: "Lead a desperate feint at Mordor's Black Gate to draw Sauron's Eye from the Ring-bearer.",
-      status: "completed",
+      status: "pending",
       danger_level: 9,
       region: "Mordor",
       quest_type: "campaign",
       campaign_order: 9,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     },
     {
       title: "Scouring of the Shire",
       description: "Drive Saruman's ruffians from the Shire and restore peace to the Hobbits' homeland.",
-      status: "completed",
+      status: "pending",
       danger_level: 5,
       region: "The Shire",
       quest_type: "campaign",
       campaign_order: 10,
-      progress: 1.0,
-      attempts: 1
+      progress: 0.0,
+      attempts: 0
     }
   ]
 
@@ -589,66 +598,19 @@ ActiveRecord::Base.transaction do
   puts "  #{Artifact.count} artifacts present."
 
   # ---------------------------------------------------------------------------
-  # 4. Quest Memberships
-  #    a) Fellowship on "Destroy the One Ring"
-  #    b) Ranger scouting party on "Hunt for Gollum" (active — must have members)
+  # 4. SimulationConfig — singleton config, clean blank state
   # ---------------------------------------------------------------------------
-  puts "Seeding quest memberships..."
-
-  fellowship_quest = Quest.find_by!(title: "Destroy the One Ring")
-
-  fellowship_roles = {
-    "Frodo Baggins"  => "Ring Bearer",
-    "Samwise Gamgee" => "Companion",
-    "Aragorn"        => "Ranger",
-    "Gandalf"        => "Guide",
-    "Legolas"        => "Archer",
-    "Gimli"          => "Warrior",
-    "Boromir"        => "Soldier",
-    "Pippin"         => "Scout",
-    "Merry"          => "Scout"
-  }
-
-  fellowship_roles.each do |character_name, role|
-    character = Character.find_by!(name: character_name)
-    QuestMembership.find_or_create_by!(character: character, quest: fellowship_quest) do |m|
-      m.role = role
-    end
-  end
-
-  # "Hunt for Gollum" is seeded as active — it must have at least one member so
-  # that QuestTickWorker does not skip it (a memberless active quest is invalid).
-  gollum_hunt = Quest.find_by!(title: "Hunt for Gollum")
-  gollum_hunt_roles = {
-    "Aragorn"  => "Ranger",
-    "Legolas"  => "Scout",
-    "Gimli"    => "Warrior",
-    "Gandalf"  => "Guide"
-  }
-
-  gollum_hunt_roles.each do |character_name, role|
-    character = Character.find_by!(name: character_name)
-    QuestMembership.find_or_create_by!(character: character, quest: gollum_hunt) do |m|
-      m.role = role
-    end
-  end
-
-  puts "  #{QuestMembership.count} quest memberships present."
-
-  # ---------------------------------------------------------------------------
-  # 5. SimulationConfig — singleton config
-  # ---------------------------------------------------------------------------
-  # Ensure the simulation is running so that QuestTickWorker (fired every
-  # minute by sidekiq-cron) actually processes quests. Without running: true
-  # the worker returns immediately and quest progress never advances.
-  # update! is guarded by unless to be idempotent on re-seed.
+  # SimulationConfig.current creates the record with running: false by default.
+  # Do NOT set running: true here — the app must start in a clean blank state.
+  # Use the UI or API (updateSimulationConfig mutation) to start the simulation,
+  # which will trigger QuestAutoStartWorker to assign idle heroes to quests.
   puts "Seeding simulation config..."
 
   sim_config = SimulationConfig.current
-  sim_config.update!(running: true) unless sim_config.running?
 
   puts "  SimulationConfig present (mode: #{sim_config.reload.mode}, running: #{sim_config.reload.running})."
 
   puts ""
-  puts "Seed complete: #{Character.count} characters, #{Quest.count} quests, #{Artifact.count} artifacts, #{QuestMembership.count} memberships."
+  puts "Seed complete: #{Character.count} characters, #{Quest.count} quests, " \
+       "#{Artifact.count} artifacts, 0 memberships (clean blank state — start simulation to begin)."
 end
