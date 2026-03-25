@@ -5,8 +5,13 @@ import { useActionCable } from './useActionCable';
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
 
 export interface QuestEvent {
-  type: string;
+  event_type: string;
   quest_id?: number;
+  quest_name?: string;
+  region?: string;
+  message?: string;
+  data?: Record<string, unknown>;
+  occurred_at?: string;
   // biome-ignore lint/suspicious/noExplicitAny: mirrors Action Cable's BaseMixin.received signature
   [key: string]: any;
 }
