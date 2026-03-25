@@ -23,6 +23,7 @@ const NAV_LINKS = [
   { to: '/sauron' as const, label: 'SAURON' },
   { to: '/history' as const, label: 'HISTORY' },
   { to: '/simulation' as const, label: 'SIMULATION' },
+  { to: '/chaos' as const, label: 'CHAOS' },
 ];
 
 // ---------------------------------------------------------------------------

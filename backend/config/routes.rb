@@ -68,6 +68,12 @@ Rails.application.routes.draw do
       resources :events, only: %i[index]
       get "leaderboard", to: "leaderboard#index"
       post "palantir/send", to: "palantir#deliver"
+
+      # Chaos injection endpoints for disaster recovery training
+      post "chaos/wound_character", to: "chaos#wound_character"
+      post "chaos/fail_quest",      to: "chaos#fail_quest"
+      post "chaos/spike_threat",    to: "chaos#spike_threat"
+      post "chaos/stop_simulation", to: "chaos#stop_simulation"
     end
   end
 end

@@ -366,6 +366,76 @@ RSpec.configure do |config|
             required: %w[error]
           },
 
+          ChaosWoundCharacterResult: {
+            type: :object,
+            description: "Result of wounding a character via chaos injection",
+            properties: {
+              affected: {
+                type: :object,
+                properties: {
+                  id: { type: :integer, example: 1 },
+                  name: { type: :string, example: "Boromir" },
+                  status: { type: :string, example: "fallen" },
+                  quest_id: { type: :integer, nullable: true, example: nil }
+                },
+                required: %w[id name status]
+              }
+            },
+            required: %w[affected]
+          },
+
+          ChaosFailQuestResult: {
+            type: :object,
+            description: "Result of failing a quest via chaos injection",
+            properties: {
+              affected: {
+                type: :object,
+                properties: {
+                  id: { type: :integer, example: 1 },
+                  title: { type: :string, example: "Destroy the One Ring" },
+                  status: { type: :string, example: "failed" },
+                  progress: { type: :number, format: :float, example: 0.0 },
+                  members_reset: { type: :integer, example: 3 }
+                },
+                required: %w[id title status progress members_reset]
+              }
+            },
+            required: %w[affected]
+          },
+
+          ChaosSpikeResult: {
+            type: :object,
+            description: "Result of spiking threat level via chaos injection",
+            properties: {
+              affected: {
+                type: :object,
+                properties: {
+                  region: { type: :string, example: "Mordor" },
+                  threat_level: { type: :integer, example: 10 },
+                  quest_id: { type: :integer, example: 1 }
+                },
+                required: %w[region threat_level quest_id]
+              }
+            },
+            required: %w[affected]
+          },
+
+          ChaosStopSimulationResult: {
+            type: :object,
+            description: "Result of stopping the simulation via chaos injection",
+            properties: {
+              affected: {
+                type: :object,
+                properties: {
+                  simulation_running: { type: :boolean, example: false },
+                  message: { type: :string, example: "The Eye of Sauron loses focus — simulation halted." }
+                },
+                required: %w[simulation_running message]
+              }
+            },
+            required: %w[affected]
+          },
+
           ValidationErrors: {
             type: :object,
             description: "Validation failure response with multiple messages",

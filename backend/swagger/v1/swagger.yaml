@@ -602,6 +602,103 @@ components:
           example: Not found
       required:
       - error
+    ChaosWoundCharacterResult:
+      type: object
+      description: Result of wounding a character via chaos injection
+      properties:
+        affected:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Boromir
+            status:
+              type: string
+              example: fallen
+            quest_id:
+              type: integer
+              nullable: true
+              example:
+          required:
+          - id
+          - name
+          - status
+      required:
+      - affected
+    ChaosFailQuestResult:
+      type: object
+      description: Result of failing a quest via chaos injection
+      properties:
+        affected:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            title:
+              type: string
+              example: Destroy the One Ring
+            status:
+              type: string
+              example: failed
+            progress:
+              type: number
+              format: float
+              example: 0.0
+            members_reset:
+              type: integer
+              example: 3
+          required:
+          - id
+          - title
+          - status
+          - progress
+          - members_reset
+      required:
+      - affected
+    ChaosSpikeResult:
+      type: object
+      description: Result of spiking threat level via chaos injection
+      properties:
+        affected:
+          type: object
+          properties:
+            region:
+              type: string
+              example: Mordor
+            threat_level:
+              type: integer
+              example: 10
+            quest_id:
+              type: integer
+              example: 1
+          required:
+          - region
+          - threat_level
+          - quest_id
+      required:
+      - affected
+    ChaosStopSimulationResult:
+      type: object
+      description: Result of stopping the simulation via chaos injection
+      properties:
+        affected:
+          type: object
+          properties:
+            simulation_running:
+              type: boolean
+              example: false
+            message:
+              type: string
+              example: The Eye of Sauron loses focus — simulation halted.
+          required:
+          - simulation_running
+          - message
+      required:
+      - affected
     ValidationErrors:
       type: object
       description: Validation failure response with multiple messages
@@ -752,6 +849,90 @@ paths:
                 artifact:
                   "$ref": "#/components/schemas/ArtifactInput"
         required: true
+  "/api/v1/chaos/wound_character":
+    post:
+      summary: Wound a random on-quest character
+      tags:
+      - Chaos
+      operationId: chaosWoundCharacter
+      description: Sets a random on_quest character to fallen, removes them from their
+        active quest membership, and creates a failed QuestEvent noting the casualty.
+      responses:
+        '200':
+          description: character wounded
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ChaosWoundCharacterResult"
+        '422':
+          description: no eligible characters
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/api/v1/chaos/fail_quest":
+    post:
+      summary: Fail a random active quest
+      tags:
+      - Chaos
+      operationId: chaosFailQuest
+      description: Immediately fails a random active quest, resets progress to 0,
+        returns member characters to idle, and creates a failed QuestEvent.
+      responses:
+        '200':
+          description: quest failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ChaosFailQuestResult"
+        '422':
+          description: no active quests
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/api/v1/chaos/spike_threat":
+    post:
+      summary: Spike threat level to maximum
+      tags:
+      - Chaos
+      operationId: chaosSpikeThreat
+      description: Publishes a threat-level spike (level 10) via the sauron_gaze channel.
+        Decays naturally on the next EyeOfSauronWorker tick.
+      responses:
+        '200':
+          description: threat spiked
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ChaosSpikeResult"
+        '422':
+          description: no active quests
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/api/v1/chaos/stop_simulation":
+    post:
+      summary: Stop the simulation via chaos injection
+      tags:
+      - Chaos
+      operationId: chaosStopSimulation
+      description: 'Stops the simulation and broadcasts a Sauron event: ''The Eye
+        of Sauron loses focus — simulation halted.'''
+      responses:
+        '200':
+          description: simulation stopped
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ChaosStopSimulationResult"
+        '422':
+          description: simulation not running
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
   "/api/v1/characters":
     get:
       summary: List all characters
