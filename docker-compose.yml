@@ -74,7 +74,7 @@ services:
       # Dev auth bypass — set to "true" to skip OIDC in development
       DEV_AUTH_BYPASS: ${DEV_AUTH_BYPASS:-false}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 20
