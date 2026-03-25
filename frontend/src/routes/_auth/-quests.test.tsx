@@ -1,5 +1,5 @@
 import { MantineProvider } from '@mantine/core';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -244,5 +244,209 @@ describe('QuestsPage', () => {
 
     expect(screen.getByText('Advance → Active')).toBeInTheDocument();
     expect(screen.getByText('Advance → Completed')).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Live update tests — verify ActionCable event patches are applied correctly.
+  // The broadcast payload shape from QuestEventBroadcaster is:
+  //   { event_type, quest_id, quest_name, region, message, data, occurred_at }
+  // Progress is nested in data.progress (0.0–1.0); status is derived from event_type.
+  // ---------------------------------------------------------------------------
+  describe('live updates via ActionCable', () => {
+    it('updates quest progress from a progress event (data.progress)', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.3 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.75, increment: 0.05 },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '0.75');
+    });
+
+    it('updates quest status to completed from a completed event', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.9 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'completed',
+          quest_id: 2,
+          data: { xp_awarded: 200, result: 'success' },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      expect(screen.getByText('completed')).toBeInTheDocument();
+    });
+
+    it('updates quest status to failed from a failed event', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.5 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'failed',
+          quest_id: 2,
+          data: { xp_awarded: 50, result: 'failure' },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      expect(screen.getByText('failed')).toBeInTheDocument();
+    });
+
+    it('updates quest status to active and resets progress from a restarted event', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'failed', progress: 0.5 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'restarted',
+          quest_id: 2,
+          data: { attempt: 2 },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      expect(screen.getByText('active')).toBeInTheDocument();
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '0');
+    });
+
+    it('updates quest status to active from a started event', () => {
+      const quests = [{ ...sampleQuests[0], id: 1, status: 'pending', progress: null }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'started',
+          quest_id: 1,
+          data: { party: ['Frodo', 'Sam'] },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      expect(screen.getByText('active')).toBeInTheDocument();
+    });
+
+    it('does not patch quests when event has no matching quest_id', () => {
+      mockUseQuests.mockReturnValue({
+        quests: sampleQuests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'completed',
+          quest_id: 9999,
+          data: {},
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      // Original statuses remain untouched.
+      expect(screen.getByText('pending')).toBeInTheDocument();
+      expect(screen.getByText('active')).toBeInTheDocument();
+    });
+
+    it('ignores unknown event types without patching status', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.4 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'level_up',
+          quest_id: 2,
+          data: { character_name: 'Frodo', new_level: 5 },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      // Status stays active — level_up events don't change quest status.
+      expect(screen.getByText('active')).toBeInTheDocument();
+    });
+
+    it('updates quest progress reactively when latestEvent changes', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.2 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: null,
+        connectionStatus: 'connected',
+      });
+
+      const { rerender } = render(<QuestsPage />, { wrapper });
+
+      // Quest progress bar reflects initial seeded value.
+      let bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '0.2');
+
+      // Simulate receiving a live progress tick.
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.55, increment: 0.05 },
+        },
+        connectionStatus: 'connected',
+      });
+
+      act(() => {
+        rerender(<QuestsPage />);
+      });
+
+      bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '0.55');
+    });
   });
 });

@@ -89,16 +89,42 @@ export function QuestsPage() {
   }, [quests, isLoading]);
 
   // Apply real-time patch updates from QuestEventsChannel.
+  // The broadcast payload shape (from QuestEventBroadcaster) is:
+  //   { event_type, quest_id, quest_name, region, message, data, occurred_at }
+  // Progress ticks arrive as event_type "progress" with data.progress (0.0–1.0).
+  // Status transitions arrive as event_type "completed" | "failed" | "started" | "restarted".
   useEffect(() => {
     if (!latestEvent) return;
 
     const patch: Partial<Quest> = {};
-    if ('status' in latestEvent && typeof latestEvent.status === 'string') {
-      patch.status = latestEvent.status as Quest['status'];
+
+    // Derive status from event_type.
+    const eventType =
+      'event_type' in latestEvent && typeof latestEvent.event_type === 'string'
+        ? latestEvent.event_type
+        : null;
+
+    if (eventType === 'completed') {
+      patch.status = 'completed';
+    } else if (eventType === 'failed') {
+      patch.status = 'failed';
+    } else if (eventType === 'started') {
+      patch.status = 'active';
+    } else if (eventType === 'restarted') {
+      patch.status = 'active';
+      patch.progress = 0;
     }
-    if ('progress' in latestEvent && typeof latestEvent.progress === 'number') {
-      patch.progress = latestEvent.progress;
+
+    // Read live progress value from data.progress (backend sends 0.0–1.0).
+    const eventData =
+      'data' in latestEvent && latestEvent.data !== null && typeof latestEvent.data === 'object'
+        ? (latestEvent.data as Record<string, unknown>)
+        : null;
+
+    if (eventData !== null && 'progress' in eventData && typeof eventData.progress === 'number') {
+      patch.progress = eventData.progress;
     }
+
     if (Object.keys(patch).length === 0) return;
 
     const applyPatch = (q: Quest): Quest =>
