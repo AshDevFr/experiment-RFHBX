@@ -49,16 +49,13 @@ export function QuestEventFeed() {
   if (latestEvent && latestEvent !== prevEventRef.current) {
     prevEventRef.current = latestEvent;
     const live: LiveQuestEvent = {
-      event_type:
-        (latestEvent as LiveQuestEvent).event_type ??
-        (latestEvent as { type?: string }).type ??
-        'unknown',
+      event_type: (latestEvent.event_type as string) ?? latestEvent.type ?? 'unknown',
       quest_id: latestEvent.quest_id,
-      quest_name: (latestEvent as LiveQuestEvent).quest_name,
-      region: (latestEvent as LiveQuestEvent).region,
-      message: (latestEvent as LiveQuestEvent).message,
-      occurred_at: (latestEvent as LiveQuestEvent).occurred_at,
-      data: (latestEvent as LiveQuestEvent).data,
+      quest_name: latestEvent.quest_name as string | undefined,
+      region: latestEvent.region as string | undefined,
+      message: latestEvent.message as string | undefined,
+      occurred_at: latestEvent.occurred_at as string | undefined,
+      data: latestEvent.data as Record<string, unknown> | undefined,
     };
     setEvents((prev) => [live, ...prev].slice(0, MAX_EVENTS));
   }
