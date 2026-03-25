@@ -7,7 +7,8 @@ class QuestEvent < ApplicationRecord
     completed: "completed",
     failed: "failed",
     restarted: "restarted",
-    artifact_found: "artifact_found"
+    artifact_found: "artifact_found",
+    level_up: "level_up"
   }
 
   belongs_to :quest

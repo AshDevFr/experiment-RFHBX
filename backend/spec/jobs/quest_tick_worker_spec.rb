@@ -244,6 +244,130 @@ RSpec.describe QuestTickWorker, type: :job do
       new_total = character.strength + character.wisdom + character.endurance
       expect(new_total).to eq(original_total + 1)
     end
+
+    context "with quest argument" do
+      let!(:quest) { create(:quest, :active, danger_level: 3) }
+
+      it "creates a level_up QuestEvent when quest is provided and level-up occurs" do
+        character = create(:character, level: 1, xp: 900)
+        character.xp += 200  # crosses L2 threshold (1000)
+
+        expect {
+          worker.send(:check_level_up, character, quest)
+        }.to change(QuestEvent, :count).by(1)
+
+        event = QuestEvent.find_by(quest: quest, event_type: :level_up)
+        expect(event).to be_present
+        expect(event.message).to match(/reached level 2/)
+        expect(event.data["character_name"]).to eq(character.name)
+        expect(event.data["new_level"]).to eq(2)
+        expect(event.data["character_id"]).to eq(character.id)
+        expect(%w[strength wisdom endurance]).to include(event.data["stat_increased"])
+      end
+
+      it "creates one level_up event per level gained" do
+        character = create(:character, level: 1, xp: 0)
+        character.xp = 2500  # crosses L2 (1000), L3 (1500), L4 (2000), L5 (2500)
+
+        expect {
+          worker.send(:check_level_up, character, quest)
+        }.to change(QuestEvent, :count).by(4)
+
+        expect(QuestEvent.where(quest: quest, event_type: :level_up).count).to eq(4)
+      end
+
+      it "does not create a level_up event when no level-up occurs" do
+        character = create(:character, level: 1, xp: 400)
+        character.xp += 100  # still below L2 threshold (1000)
+
+        expect {
+          worker.send(:check_level_up, character, quest)
+        }.not_to change(QuestEvent, :count)
+      end
+
+      it "does not create a level_up event when quest is nil" do
+        character = create(:character, level: 1, xp: 900)
+        character.xp += 200  # crosses threshold
+
+        expect {
+          worker.send(:check_level_up, character, nil)
+        }.not_to change(QuestEvent, :count)
+      end
+
+      it "collects level_up events in @pending_level_up_events for post-commit broadcast" do
+        character = create(:character, level: 1, xp: 900)
+        character.xp += 200
+        worker.instance_variable_set(:@pending_level_up_events, [])
+
+        worker.send(:check_level_up, character, quest)
+
+        pending = worker.instance_variable_get(:@pending_level_up_events)
+        expect(pending.length).to eq(1)
+        expect(pending.first.event_type).to eq("level_up")
+      end
+    end
+  end
+
+  describe "level_up events during quest success" do
+    subject(:worker) { described_class.new }
+
+    let!(:quest) { create(:quest, :active, danger_level: 5, progress: 0.99) }
+    # Character needs enough XP after the award to level up:
+    # danger_level 5 * 100 = 500 XP awarded; L2 threshold = 1000
+    # Start with xp: 600 so that 600 + 500 = 1100 >= 1000 (L2)
+    let!(:character) do
+      create(:character, status: :on_quest, strength: 20, wisdom: 20, endurance: 20, level: 1, xp: 600)
+    end
+
+    before do
+      create(:quest_membership, quest: quest, character: character)
+      config.update!(progress_min: 0.05, progress_max: 0.1)
+      allow_any_instance_of(QuestTickWorker).to receive(:rand).with(100.0).and_return(1.0)
+      allow_any_instance_of(QuestTickWorker).to receive(:rand).with(no_args).and_return(0.5)
+    end
+
+    it "creates a level_up QuestEvent when a character levels up on quest success" do
+      subject.perform
+      event = QuestEvent.find_by(quest: quest, event_type: :level_up)
+      expect(event).to be_present
+      expect(event.message).to match(/reached level 2/)
+      expect(event.data["character_id"]).to eq(character.id)
+      expect(event.data["new_level"]).to eq(2)
+    end
+
+    it "broadcasts level_up events after the transaction commits" do
+      broadcasts = []
+      allow(QuestEventBroadcaster).to receive(:broadcast) { |e| broadcasts << e }
+
+      subject.perform
+
+      level_up_broadcasts = broadcasts.select { |e| e.event_type == "level_up" }
+      expect(level_up_broadcasts).not_to be_empty
+    end
+  end
+
+  describe "level_up events during quest failure" do
+    subject(:worker) { described_class.new }
+
+    let!(:quest) { create(:quest, :active, danger_level: 10, progress: 0.99, attempts: 0) }
+    # danger_level 10 * 25 = 250 XP on failure; start at xp: 800 so 800 + 250 = 1050 >= 1000 (L2)
+    let!(:character) do
+      create(:character, status: :on_quest, strength: 5, wisdom: 5, endurance: 5, level: 1, xp: 800)
+    end
+
+    before do
+      create(:quest_membership, quest: quest, character: character)
+      config.update!(progress_min: 0.05, progress_max: 0.1)
+      allow_any_instance_of(QuestTickWorker).to receive(:rand).with(100.0).and_return(99.0)
+      allow_any_instance_of(QuestTickWorker).to receive(:rand).with(no_args).and_return(0.5)
+    end
+
+    it "creates a level_up QuestEvent when a character levels up on quest failure" do
+      subject.perform
+      event = QuestEvent.find_by(quest: quest, event_type: :level_up)
+      expect(event).to be_present
+      expect(event.data["new_level"]).to eq(2)
+    end
   end
 
   describe "campaign mode" do

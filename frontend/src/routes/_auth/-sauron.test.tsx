@@ -25,6 +25,16 @@ vi.mock('../../hooks/useSauronGazeChannel', () => ({
   useSauronGazeChannel: () => mockUseSauronGazeChannel(),
 }));
 
+// ---------------------------------------------------------------------------
+// Mock useQuestEventsChannel — QuestEventFeed (rendered on SauronPage) needs it.
+// ---------------------------------------------------------------------------
+vi.mock('../../hooks/useQuestEventsChannel', () => ({
+  useQuestEventsChannel: () => ({
+    latestEvent: null,
+    connectionStatus: 'connected',
+  }),
+}));
+
 // Import the page component AFTER mocks are registered.
 import { SauronPage } from './sauron';
 

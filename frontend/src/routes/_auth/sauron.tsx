@@ -1,7 +1,18 @@
-import { Alert, Center, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Center,
+  Container,
+  Divider,
+  Group,
+  Loader,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { CableStatus } from '../../components/CableStatus';
+import { QuestEventFeed } from '../../components/QuestEventFeed';
 import { SauronHistoryLog } from '../../components/SauronHistoryLog';
 import { ThreatLevelIndicator } from '../../components/ThreatLevelIndicator';
 import { type SauronGaze, useSauronGazeChannel } from '../../hooks/useSauronGazeChannel';
@@ -87,6 +98,13 @@ export function SauronPage() {
           <SauronHistoryLog events={history} />
         </Stack>
       )}
+
+      {/* Quest events live feed — always shown regardless of Sauron gaze state */}
+      <Divider my="xl" />
+      <Title order={4} mb="sm">
+        Live Quest Events
+      </Title>
+      <QuestEventFeed />
     </Container>
   );
 }
