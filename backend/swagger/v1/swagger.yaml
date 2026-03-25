@@ -647,7 +647,7 @@ paths:
         description: Filter artifacts by character ID
       responses:
         '200':
-          description: artifacts retrieved
+          description: artifacts filtered by character_id
           content:
             application/json:
               schema:
@@ -909,7 +909,6 @@ paths:
           - completed
           - failed
           - restarted
-          - artifact_found
         required: false
         description: Filter by event type
       - name: quest_id

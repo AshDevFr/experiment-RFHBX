@@ -68,7 +68,7 @@ describe('useArtifacts', () => {
   });
 
   it('sets isLoading true while fetching', () => {
-    let resolvePromise: (value: unknown) => void;
+    let resolvePromise: (value: unknown) => void = () => {};
     const promise = new Promise((r) => {
       resolvePromise = r;
     });
@@ -77,7 +77,7 @@ describe('useArtifacts', () => {
     const { result } = renderHook(() => useArtifacts(42));
 
     expect(result.current.isLoading).toBe(true);
-    resolvePromise?.({ data: [] });
+    resolvePromise({ data: [] });
   });
 
   it('refetches when characterId changes', async () => {
