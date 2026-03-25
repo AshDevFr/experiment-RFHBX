@@ -1,5 +1,6 @@
-import { Badge, Divider, Group, Modal, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Badge, Divider, Group, Loader, Modal, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { Character } from '../schemas/character';
+import { useArtifacts } from '../hooks/useArtifacts';
 import { STATUS_COLORS, STATUS_LABELS } from './CharacterCard';
 
 interface CharacterDetailModalProps {
@@ -22,6 +23,8 @@ function StatItem({ label, value }: { label: string; value: number | undefined }
 }
 
 export function CharacterDetailModal({ character, onClose }: CharacterDetailModalProps) {
+  const { artifacts, isLoading: artifactsLoading } = useArtifacts(character?.id);
+
   if (!character) return null;
 
   return (
@@ -94,6 +97,45 @@ export function CharacterDetailModal({ character, onClose }: CharacterDetailModa
             </Group>
           </>
         )}
+
+        <Divider />
+
+        <Stack gap="xs">
+          <Text fw={600} size="sm">
+            Artifacts
+          </Text>
+          {artifactsLoading ? (
+            <Loader size="sm" data-testid="artifacts-loader" />
+          ) : artifacts.length === 0 ? (
+            <Text size="sm" c="dimmed" data-testid="no-artifacts-message">
+              No artifacts yet.
+            </Text>
+          ) : (
+            <Stack gap={4} data-testid="artifacts-list">
+              {artifacts.map((artifact) => (
+                <Group key={artifact.id} justify="space-between" align="center">
+                  <Text size="sm" fw={500}>
+                    {artifact.name}
+                  </Text>
+                  <Group gap={4}>
+                    {artifact.stat_bonus &&
+                      Object.entries(artifact.stat_bonus).map(([stat, value]) => (
+                        <Badge
+                          key={stat}
+                          size="xs"
+                          variant="outline"
+                          color="green"
+                          data-testid={`stat-bonus-${stat}`}
+                        >
+                          +{value} {stat}
+                        </Badge>
+                      ))}
+                  </Group>
+                </Group>
+              ))}
+            </Stack>
+          )}
+        </Stack>
       </Stack>
     </Modal>
   );

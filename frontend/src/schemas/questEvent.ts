@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const EVENT_TYPES = ['started', 'progress', 'completed', 'failed', 'restarted'] as const;
+export const EVENT_TYPES = ['started', 'progress', 'completed', 'failed', 'restarted', 'artifact_found'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 export const questEventSchema = z.object({
@@ -41,6 +41,7 @@ export const EVENT_TYPE_COLORS: Record<EventType, string> = {
   completed: 'green',
   failed: 'red',
   restarted: 'orange',
+  artifact_found: 'yellow',
 };
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -49,4 +50,5 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   completed: 'Completed',
   failed: 'Failed',
   restarted: 'Restarted',
+  artifact_found: 'Artifact Found',
 };

@@ -15,6 +15,7 @@ export const characterSchema = z.object({
   status: z.string().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  artifact_count: z.number().optional(),
 });
 
 export type Character = z.infer<typeof characterSchema>;

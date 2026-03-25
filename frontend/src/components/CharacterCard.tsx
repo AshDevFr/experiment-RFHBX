@@ -39,11 +39,23 @@ export function CharacterCard({ character, onClick }: CharacterCardProps) {
           <Text fw={700} size="md" style={{ flex: 1 }}>
             {character.name}
           </Text>
-          {statusLabel && (
-            <Badge color={statusColor} size="sm" variant="light">
-              {statusLabel}
-            </Badge>
-          )}
+          <Group gap={4}>
+            {character.artifact_count !== undefined && character.artifact_count > 0 && (
+              <Badge
+                size="sm"
+                variant="filled"
+                color="yellow"
+                data-testid="artifact-count-badge"
+              >
+                {character.artifact_count} {character.artifact_count === 1 ? 'artifact' : 'artifacts'}
+              </Badge>
+            )}
+            {statusLabel && (
+              <Badge color={statusColor} size="sm" variant="light">
+                {statusLabel}
+              </Badge>
+            )}
+          </Group>
         </Group>
 
         {(character.level !== undefined || character.title) && (

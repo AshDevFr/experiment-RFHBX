@@ -100,4 +100,32 @@ describe('CharacterCard', () => {
     expect(screen.getByText('Tom Bombadil')).toBeInTheDocument();
     expect(screen.getByText('Unknown')).toBeInTheDocument();
   });
+
+  it('shows artifact count badge when character has artifacts', () => {
+    const withArtifacts: Character = { ...sampleCharacter, artifact_count: 3 };
+    render(<CharacterCard character={withArtifacts} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.getByTestId('artifact-count-badge')).toBeInTheDocument();
+    expect(screen.getByText('3 artifacts')).toBeInTheDocument();
+  });
+
+  it('shows singular "artifact" when count is 1', () => {
+    const oneArtifact: Character = { ...sampleCharacter, artifact_count: 1 };
+    render(<CharacterCard character={oneArtifact} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.getByText('1 artifact')).toBeInTheDocument();
+  });
+
+  it('does not show artifact badge when count is 0', () => {
+    const noArtifacts: Character = { ...sampleCharacter, artifact_count: 0 };
+    render(<CharacterCard character={noArtifacts} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.queryByTestId('artifact-count-badge')).not.toBeInTheDocument();
+  });
+
+  it('does not show artifact badge when artifact_count is absent', () => {
+    render(<CharacterCard character={sampleCharacter} onClick={vi.fn()} />, { wrapper });
+
+    expect(screen.queryByTestId('artifact-count-badge')).not.toBeInTheDocument();
+  });
 });
