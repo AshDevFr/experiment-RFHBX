@@ -247,6 +247,86 @@ describe('QuestsPage', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Sort-order tests — verify sortQuests wiring in QuestsPage.
+  //
+  // The sort comparator uses the string 'active' (not 'in_progress') to identify
+  // in-progress quests — matching the backend enum value and the Zod schema enum.
+  // These tests confirm that wiring is correct end-to-end: the sortQuests helper
+  // IS applied to the rendered list, and the status string comparison works.
+  // ---------------------------------------------------------------------------
+  describe('quest list sort order', () => {
+    it('renders quests sorted on initial load: active first, others by campaign_order, completed last', () => {
+      // sampleQuests arrives in the order the API returns (alphabetical by title):
+      //   [Destroy the Ring / pending / order:1,
+      //    Scout the Shire  / active  / no order,
+      //    Defend Helms Deep / completed / order:2]
+      // Expected sort result: Scout (active) → Destroy (pending, order:1) → Defend (completed)
+      mockUseQuests.mockReturnValue({
+        quests: sampleQuests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      const cards = screen.getAllByTestId('quest-card');
+      expect(cards).toHaveLength(3);
+      // Active quest must be first — status 'active' drives priority 0 in sortQuests.
+      expect(cards[0]).toHaveTextContent('Scout the Shire');
+      // Pending quest with lowest campaign_order comes next.
+      expect(cards[1]).toHaveTextContent('Destroy the Ring');
+      // Completed quest is always last.
+      expect(cards[2]).toHaveTextContent('Defend Helms Deep');
+    });
+
+    it('re-sorts after a started ActionCable event promotes a pending quest to active', () => {
+      // Start with all three quests pending, arriving alphabetically from the API.
+      const allPending = [
+        { ...sampleQuests[2], id: 3, status: 'pending', campaign_order: 2 }, // Defend Helms Deep
+        { ...sampleQuests[0], id: 1, status: 'pending', campaign_order: 1 }, // Destroy the Ring
+        { ...sampleQuests[1], id: 2, status: 'pending', campaign_order: null }, // Scout the Shire
+      ];
+      mockUseQuests.mockReturnValue({
+        quests: allPending,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: null,
+        connectionStatus: 'connected',
+      });
+
+      const { rerender } = render(<QuestsPage />, { wrapper });
+
+      // Before live update: all pending → sorted by campaign_order ascending.
+      // null campaign_order (Scout) sorts after numbered ones.
+      let cards = screen.getAllByTestId('quest-card');
+      expect(cards[0]).toHaveTextContent('Destroy the Ring'); // order: 1
+      expect(cards[1]).toHaveTextContent('Defend Helms Deep'); // order: 2
+      expect(cards[2]).toHaveTextContent('Scout the Shire'); // order: null → last
+
+      // Simulate a 'started' ActionCable event activating Scout the Shire (id: 2).
+      // Status is set to 'active' — the exact string checked by sortQuests.
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: { event_type: 'started', quest_id: 2, data: {} },
+        connectionStatus: 'connected',
+      });
+
+      act(() => {
+        rerender(<QuestsPage />);
+      });
+
+      // After live update: Scout (now active) must float to position 0.
+      cards = screen.getAllByTestId('quest-card');
+      expect(cards[0]).toHaveTextContent('Scout the Shire'); // active → first
+      expect(cards[1]).toHaveTextContent('Destroy the Ring'); // pending, order: 1
+      expect(cards[2]).toHaveTextContent('Defend Helms Deep'); // pending, order: 2
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Live update tests — verify ActionCable event patches are applied correctly.
   // The broadcast payload shape from QuestEventBroadcaster is:
   //   { event_type, quest_id, quest_name, region, message, data, occurred_at }
