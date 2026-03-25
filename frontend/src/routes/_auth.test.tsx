@@ -1,5 +1,5 @@
 import { MantineProvider } from '@mantine/core';
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -140,5 +140,104 @@ describe('AuthenticatedLayout — returnTo redirect', () => {
     );
 
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthenticatedLayout — direct URL navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('direct URL navigation while unauthenticated redirects to login exactly once (no loop)', () => {
+    mockAuthState = { isLoading: false, isAuthenticated: false };
+    mockLocation = { pathname: '/fellowship', searchStr: '', search: {} };
+
+    const { rerender } = render(
+      <MantineProvider>
+        <AuthenticatedLayout />
+      </MantineProvider>,
+    );
+
+    // First render — navigate should fire once with the original destination.
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '/login',
+        search: { returnTo: '/fellowship' },
+      }),
+    );
+
+    // Simulate TanStack Router updating location to the login URL while the
+    // _auth layout is still mounted during the navigation transition.  This
+    // is the scenario that caused the infinite redirect loop.
+    mockLocation = {
+      pathname: '/login',
+      searchStr: '?returnTo=%2Ffellowship',
+      search: { returnTo: '/fellowship' },
+    };
+
+    rerender(
+      <MantineProvider>
+        <AuthenticatedLayout />
+      </MantineProvider>,
+    );
+
+    // navigate must NOT have been called a second time — the returnTo URL
+    // must not grow into a recursive chain of nested returnTo params.
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('direct URL navigation while authenticated renders children (no redirect)', () => {
+    mockAuthState = { isLoading: false, isAuthenticated: true };
+    mockLocation = { pathname: '/fellowship', searchStr: '', search: {} };
+
+    render(
+      <MantineProvider>
+        <AuthenticatedLayout />
+      </MantineProvider>,
+    );
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('direct URL navigation while auth is loading renders a loader, not a redirect', () => {
+    mockAuthState = { isLoading: true, isAuthenticated: false };
+    mockLocation = { pathname: '/fellowship', searchStr: '', search: {} };
+
+    render(
+      <MantineProvider>
+        <AuthenticatedLayout />
+      </MantineProvider>,
+    );
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // The Mantine Center+Loader is rendered while auth is in-flight (not null).
+    expect(document.querySelector('.mantine-Center-root')).toBeInTheDocument();
+  });
+
+  it('returnTo preserves the original deep-link URL, not the updated login URL', () => {
+    mockAuthState = { isLoading: false, isAuthenticated: false };
+    mockLocation = {
+      pathname: '/quests',
+      searchStr: '?filter=active',
+      search: { filter: 'active' },
+    };
+
+    render(
+      <MantineProvider>
+        <AuthenticatedLayout />
+      </MantineProvider>,
+    );
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    const { returnTo } = mockNavigate.mock.calls[0][0].search as { returnTo: string };
+    // returnTo should be the original deep-link, not a /login URL.
+    expect(returnTo).toBe('/quests?filter=active');
+    expect(returnTo).not.toContain('/login');
+    expect(returnTo).not.toContain('returnTo');
   });
 });
