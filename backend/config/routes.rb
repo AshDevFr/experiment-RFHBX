@@ -58,11 +58,12 @@ Rails.application.routes.draw do
 
       resources :artifacts, except: %i[destroy]
 
-      get  "simulation/status", to: "simulation#status"
-      post "simulation/start",  to: "simulation#start"
-      post "simulation/stop",   to: "simulation#stop"
-      post "simulation/mode",   to: "simulation#mode"
-      post "simulation/reset",  to: "simulation#reset"
+      get   "simulation/status", to: "simulation#status"
+      post  "simulation/start",  to: "simulation#start"
+      post  "simulation/stop",   to: "simulation#stop"
+      post  "simulation/mode",   to: "simulation#mode"
+      patch "simulation/config", to: "simulation#config"
+      post  "simulation/reset",  to: "simulation#reset"
 
       resources :events, only: %i[index]
       get "leaderboard", to: "leaderboard#index"

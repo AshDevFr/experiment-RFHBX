@@ -1348,6 +1348,55 @@ paths:
                   description: The desired simulation mode
                   example: campaign
         required: true
+  "/api/v1/simulation/config":
+    patch:
+      summary: Update simulation configuration
+      tags:
+      - Simulation
+      operationId: updateSimulationConfig
+      description: Updates simulation parameters such as tick interval, progress bounds,
+        and mode. All fields are optional; only provided fields are updated.
+      parameters: []
+      responses:
+        '200':
+          description: configuration updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationConfig"
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tick_interval_seconds:
+                  type: integer
+                  description: Seconds between simulation ticks (must be > 0)
+                  example: 60
+                progress_min:
+                  type: number
+                  format: float
+                  description: Minimum tick progress increment (0–1)
+                  example: 0.01
+                progress_max:
+                  type: number
+                  format: float
+                  description: Maximum tick progress increment (0–1, must be > progress_min)
+                  example: 0.1
+                mode:
+                  type: string
+                  enum:
+                  - campaign
+                  - random
+                  description: Simulation mode
+                  example: campaign
   "/api/v1/simulation/reset":
     post:
       summary: Reset the simulation

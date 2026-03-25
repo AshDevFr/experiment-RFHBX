@@ -92,6 +92,54 @@ RSpec.describe "Api::V1::Simulation", type: :request do
     end
   end
 
+  describe "PATCH /api/v1/simulation/config" do
+    it "returns HTTP 200" do
+      patch "/api/v1/simulation/config", params: { tick_interval_seconds: 30 }
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "updates tick_interval_seconds" do
+      patch "/api/v1/simulation/config", params: { tick_interval_seconds: 45 }
+      expect(response.parsed_body["tick_interval_seconds"]).to eq(45)
+    end
+
+    it "updates progress_min and progress_max" do
+      patch "/api/v1/simulation/config", params: { progress_min: 0.05, progress_max: 0.2 }
+      body = response.parsed_body
+      expect(body["progress_min"].to_f).to be_within(0.001).of(0.05)
+      expect(body["progress_max"].to_f).to be_within(0.001).of(0.2)
+    end
+
+    it "updates mode" do
+      patch "/api/v1/simulation/config", params: { mode: "random" }
+      expect(response.parsed_body["mode"]).to eq("random")
+    end
+
+    it "resets campaign_position when switching to campaign" do
+      SimulationConfig.current.update!(mode: "random", campaign_position: 5)
+      patch "/api/v1/simulation/config", params: { mode: "campaign" }
+      expect(response.parsed_body["campaign_position"]).to eq(0)
+    end
+
+    it "returns 422 for invalid mode" do
+      patch "/api/v1/simulation/config", params: { mode: "invalid" }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns 422 for tick_interval_seconds <= 0" do
+      patch "/api/v1/simulation/config", params: { tick_interval_seconds: 0 }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "can update multiple fields at once" do
+      patch "/api/v1/simulation/config",
+            params: { tick_interval_seconds: 120, progress_min: 0.02, progress_max: 0.15, mode: "random" }
+      body = response.parsed_body
+      expect(body["tick_interval_seconds"]).to eq(120)
+      expect(body["mode"]).to eq("random")
+    end
+  end
+
   describe "POST /api/v1/simulation/reset" do
     it "returns HTTP 200 with confirm: true" do
       post "/api/v1/simulation/reset", params: { confirm: true }
