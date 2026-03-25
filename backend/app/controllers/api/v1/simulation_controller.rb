@@ -48,6 +48,33 @@ module Api
         render json: config
       end
 
+      # PATCH /api/v1/simulation/config
+      def config
+        simulation_config = SimulationConfig.current
+        permitted = params.permit(:tick_interval_seconds, :progress_min, :progress_max, :mode)
+
+        # Validate mode if provided
+        if permitted[:mode].present? && !SimulationConfig.modes.key?(permitted[:mode].to_s)
+          return render json: { error: "Invalid mode. Must be 'campaign' or 'random'" },
+                        status: :unprocessable_entity
+        end
+
+        # Switching to campaign resets campaign_position (mirrors mode action behaviour)
+        if permitted[:mode].to_s == "campaign" && simulation_config.mode != "campaign"
+          permitted_with_reset = permitted.to_h.merge("campaign_position" => 0)
+          attrs = permitted_with_reset
+        else
+          attrs = permitted
+        end
+
+        if simulation_config.update(attrs)
+          render json: simulation_config
+        else
+          render json: { errors: simulation_config.errors.full_messages },
+                 status: :unprocessable_entity
+        end
+      end
+
       # POST /api/v1/simulation/reset
       def reset
         unless params[:confirm].to_s == "true"

@@ -80,6 +80,58 @@ RSpec.describe "Simulation", type: :request do
     end
   end
 
+  path "/api/v1/simulation/config" do
+    patch "Update simulation configuration" do
+      tags "Simulation"
+      operationId "updateSimulationConfig"
+      consumes "application/json"
+      produces "application/json"
+      description "Updates simulation parameters such as tick interval, progress bounds, " \
+                  "and mode. All fields are optional; only provided fields are updated."
+
+      parameter name: :body, in: :body, required: false, schema: {
+        type: :object,
+        properties: {
+          tick_interval_seconds: {
+            type: :integer,
+            description: "Seconds between simulation ticks (must be > 0)",
+            example: 60
+          },
+          progress_min: {
+            type: :number,
+            format: :float,
+            description: "Minimum tick progress increment (0–1)",
+            example: 0.01
+          },
+          progress_max: {
+            type: :number,
+            format: :float,
+            description: "Maximum tick progress increment (0–1, must be > progress_min)",
+            example: 0.1
+          },
+          mode: {
+            type: :string,
+            enum: %w[campaign random],
+            description: "Simulation mode",
+            example: "campaign"
+          }
+        }
+      }
+
+      response "200", "configuration updated" do
+        schema "$ref" => "#/components/schemas/SimulationConfig"
+        let(:body) { { tick_interval_seconds: 30 } }
+        run_test!
+      end
+
+      response "422", "validation failed" do
+        schema "$ref" => "#/components/schemas/ErrorResponse"
+        let(:body) { { tick_interval_seconds: 0 } }
+        run_test!
+      end
+    end
+  end
+
   path "/api/v1/simulation/reset" do
     post "Reset the simulation" do
       tags "Simulation"
