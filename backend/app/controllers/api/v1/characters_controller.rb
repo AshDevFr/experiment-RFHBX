@@ -7,8 +7,8 @@ module Api
 
       # GET /api/v1/characters
       def index
-        characters = paginate(Character.all.order(:name))
-        render json: characters
+        characters = paginate(Character.includes(:artifacts).order(:name))
+        render json: characters.map { |c| c.as_json.merge("artifact_count" => c.artifacts.size) }
       end
 
       # GET /api/v1/characters/:id
@@ -56,8 +56,8 @@ module Api
 
       def character_detail(character)
         character.as_json.merge(
-          "quests" => character.quests.as_json(only: %i[id title status danger_level]),
-          "artifacts" => character.artifacts.as_json(only: %i[id name artifact_type power corrupted])
+          "quests"    => character.quests.as_json(only: %i[id title status danger_level]),
+          "artifacts" => character.artifacts.as_json(only: %i[id name artifact_type power corrupted stat_bonus])
         )
       end
 

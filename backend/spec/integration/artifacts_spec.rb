@@ -14,11 +14,28 @@ RSpec.describe "Artifacts", type: :request do
                 required: false, description: "Page number (default: 1)"
       parameter name: :per_page, in: :query, schema: { type: :integer, example: 25 },
                 required: false, description: "Results per page (max: 100, default: 25)"
+      parameter name: :character_id, in: :query, schema: { type: :integer, example: 1 },
+                required: false, description: "Filter artifacts by character ID"
 
       response "200", "artifacts retrieved" do
         schema type: :array, items: { "$ref" => "#/components/schemas/Artifact" }
         before { create_list(:artifact, 2) }
         run_test!
+      end
+
+      response "200", "artifacts filtered by character_id" do
+        schema type: :array, items: { "$ref" => "#/components/schemas/Artifact" }
+        let(:character) { create(:character) }
+        let(:character_id) { character.id }
+        before do
+          create(:artifact, character: character)
+          create(:artifact) # belongs to no character — should not appear
+        end
+        run_test! do |response|
+          data = JSON.parse(response.body)
+          expect(data.length).to eq(1)
+          expect(data.first["character_id"]).to eq(character.id)
+        end
       end
     end
 
