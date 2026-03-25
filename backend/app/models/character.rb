@@ -3,6 +3,10 @@
 class Character < ApplicationRecord
   enum :status, { idle: "idle", on_quest: "on_quest", fallen: "fallen" }, default: "idle"
 
+  # Explicit model-level default so that Character.new without a level
+  # argument is always valid even before the DB connection resolves defaults.
+  attribute :level, :integer, default: 1
+
   has_many :quest_memberships, dependent: :destroy
   has_many :quests, through: :quest_memberships
   has_many :artifacts, dependent: :nullify
