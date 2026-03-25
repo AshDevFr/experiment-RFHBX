@@ -1,5 +1,6 @@
 import { Badge, Divider, Group, Modal, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { Character } from '../schemas/character';
+import { STATUS_COLORS, STATUS_LABELS } from './CharacterCard';
 
 interface CharacterDetailModalProps {
   character: Character | null;
@@ -51,8 +52,8 @@ export function CharacterDetailModal({ character, onClose }: CharacterDetailModa
             </Badge>
           )}
           {character.status && (
-            <Badge variant="light" color="gray">
-              {character.status}
+            <Badge variant="light" color={STATUS_COLORS[character.status] ?? 'gray'}>
+              {STATUS_LABELS[character.status] ?? character.status.toUpperCase()}
             </Badge>
           )}
           {character.ring_bearer && (
