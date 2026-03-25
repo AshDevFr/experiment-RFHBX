@@ -65,7 +65,7 @@ import * as ChaosModule from './chaos';
 // Import AFTER mocks
 import { ChaosActionCard, ChaosResultCard } from './chaos';
 
-const ChaosPage = (ChaosModule.Route as { component: React.ComponentType }).component;
+const ChaosPage = (ChaosModule.Route as unknown as { component: React.ComponentType }).component;
 
 function wrapper({ children }: { children: ReactNode }) {
   return <MantineProvider>{children}</MantineProvider>;
