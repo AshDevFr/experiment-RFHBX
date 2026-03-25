@@ -78,7 +78,7 @@ describe('QuestCard', () => {
     const activeQuest: Quest = {
       ...sampleQuest,
       status: 'active',
-      progress: 60,
+      progress: 0.6,
     };
     render(<QuestCard quest={activeQuest} onClick={vi.fn()} />, { wrapper });
 
@@ -95,7 +95,7 @@ describe('QuestCard', () => {
     const completedQuest: Quest = {
       ...sampleQuest,
       status: 'completed',
-      progress: 100,
+      progress: 1.0,
     };
     render(<QuestCard quest={completedQuest} onClick={vi.fn()} />, { wrapper });
 
@@ -106,7 +106,7 @@ describe('QuestCard', () => {
     const failedQuest: Quest = {
       ...sampleQuest,
       status: 'failed',
-      progress: 42,
+      progress: 0.42,
     };
     render(<QuestCard quest={failedQuest} onClick={vi.fn()} />, { wrapper });
 
@@ -117,7 +117,7 @@ describe('QuestCard', () => {
     const activeQuest: Quest = {
       ...sampleQuest,
       status: 'active',
-      progress: 75,
+      progress: 0.75,
     };
     render(<QuestCard quest={activeQuest} onClick={vi.fn()} />, { wrapper });
 
@@ -132,7 +132,7 @@ describe('QuestCard', () => {
     const completedQuest: Quest = {
       ...sampleQuest,
       status: 'completed',
-      progress: 100,
+      progress: 1.0,
     };
     render(<QuestCard quest={completedQuest} onClick={vi.fn()} />, { wrapper });
 
@@ -145,7 +145,7 @@ describe('QuestCard', () => {
     const failedQuest: Quest = {
       ...sampleQuest,
       status: 'failed',
-      progress: 30,
+      progress: 0.3,
     };
     render(<QuestCard quest={failedQuest} onClick={vi.fn()} />, { wrapper });
 
@@ -184,5 +184,44 @@ describe('QuestCard', () => {
     render(<QuestCard quest={sampleQuest} onClick={vi.fn()} />, { wrapper });
 
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('active quest with progress 0.5 renders bar at 50%', () => {
+    const activeQuest: Quest = {
+      ...sampleQuest,
+      status: 'active',
+      progress: 0.5,
+    };
+    render(<QuestCard quest={activeQuest} onClick={vi.fn()} />, { wrapper });
+
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-label', 'Quest progress: 50%');
+    expect(bar).toHaveAttribute('aria-valuenow', '50');
+  });
+
+  it('active quest with progress 0.0 renders bar at 0%', () => {
+    const activeQuest: Quest = {
+      ...sampleQuest,
+      status: 'active',
+      progress: 0.0,
+    };
+    render(<QuestCard quest={activeQuest} onClick={vi.fn()} />, { wrapper });
+
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-label', 'Quest progress: 0%');
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
+  });
+
+  it('completed quest renders bar at 100% regardless of stored progress', () => {
+    const completedQuest: Quest = {
+      ...sampleQuest,
+      status: 'completed',
+      progress: 0.37,
+    };
+    render(<QuestCard quest={completedQuest} onClick={vi.fn()} />, { wrapper });
+
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-label', 'Quest progress: 100%');
+    expect(bar).toHaveAttribute('aria-valuenow', '100');
   });
 });

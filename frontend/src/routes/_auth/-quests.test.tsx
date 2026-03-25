@@ -353,7 +353,7 @@ describe('QuestsPage', () => {
       render(<QuestsPage />, { wrapper });
 
       const bar = screen.getByRole('progressbar');
-      expect(bar).toHaveAttribute('aria-valuenow', '0.75');
+      expect(bar).toHaveAttribute('aria-valuenow', '75');
     });
 
     it('updates quest status to completed from a completed event', () => {
@@ -509,7 +509,7 @@ describe('QuestsPage', () => {
 
       // Quest progress bar reflects initial seeded value.
       let bar = screen.getByRole('progressbar');
-      expect(bar).toHaveAttribute('aria-valuenow', '0.2');
+      expect(bar).toHaveAttribute('aria-valuenow', '20');
 
       // Simulate receiving a live progress tick.
       mockUseQuestEventsChannel.mockReturnValue({
@@ -526,7 +526,7 @@ describe('QuestsPage', () => {
       });
 
       bar = screen.getByRole('progressbar');
-      expect(bar).toHaveAttribute('aria-valuenow', '0.55');
+      expect(bar).toHaveAttribute('aria-valuenow', '55');
     });
   });
 });

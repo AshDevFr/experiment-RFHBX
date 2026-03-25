@@ -91,7 +91,7 @@ describe('QuestDetailModal', () => {
   });
 
   it('shows progress bar when progress is set', () => {
-    const withProgress: Quest = { ...sampleQuest, status: 'active', progress: 75 };
+    const withProgress: Quest = { ...sampleQuest, status: 'active', progress: 0.75 };
     render(<QuestDetailModal quest={withProgress} onClose={vi.fn()} />, { wrapper });
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -131,5 +131,26 @@ describe('QuestDetailModal', () => {
     render(<QuestDetailModal quest={sampleQuest} onClose={vi.fn()} />, { wrapper });
 
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('active quest with progress 0.5 renders progress bar', () => {
+    const activeQuest: Quest = { ...sampleQuest, status: 'active', progress: 0.5 };
+    render(<QuestDetailModal quest={activeQuest} onClose={vi.fn()} />, { wrapper });
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('active quest with progress 0.0 renders progress bar', () => {
+    const activeQuest: Quest = { ...sampleQuest, status: 'active', progress: 0.0 };
+    render(<QuestDetailModal quest={activeQuest} onClose={vi.fn()} />, { wrapper });
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('completed quest renders progress bar at 100%', () => {
+    const completedQuest: Quest = { ...sampleQuest, status: 'completed', progress: 0.37 };
+    render(<QuestDetailModal quest={completedQuest} onClose={vi.fn()} />, { wrapper });
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 });
