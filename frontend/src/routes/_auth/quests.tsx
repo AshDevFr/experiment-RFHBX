@@ -20,6 +20,7 @@ import { QuestDetailModal } from '../../components/QuestDetailModal';
 import { useQuestEventsChannel } from '../../hooks/useQuestEventsChannel';
 import { useQuests } from '../../hooks/useQuests';
 import { api } from '../../lib/api';
+import { sortQuests } from '../../lib/questSort';
 import { type Quest, questSchema } from '../../schemas/quest';
 
 export const Route = createFileRoute('/_auth/quests')({
@@ -134,9 +135,10 @@ export function QuestsPage() {
     setSelectedQuest((prev) => (prev ? applyPatch(prev) : null));
   }, [latestEvent]);
 
-  // Client-side filtering by status.
+  // Client-side filtering by status, then sort: active first, completed last,
+  // others ordered by campaign_order.
   const filtered = useMemo(
-    () => liveQuests.filter((q) => !statusFilter || q.status === statusFilter),
+    () => sortQuests(liveQuests.filter((q) => !statusFilter || q.status === statusFilter)),
     [liveQuests, statusFilter],
   );
 
