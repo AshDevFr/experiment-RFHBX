@@ -41,13 +41,9 @@ export function CharacterCard({ character, onClick }: CharacterCardProps) {
           </Text>
           <Group gap={4}>
             {character.artifact_count !== undefined && character.artifact_count > 0 && (
-              <Badge
-                size="sm"
-                variant="filled"
-                color="yellow"
-                data-testid="artifact-count-badge"
-              >
-                {character.artifact_count} {character.artifact_count === 1 ? 'artifact' : 'artifacts'}
+              <Badge size="sm" variant="filled" color="yellow" data-testid="artifact-count-badge">
+                {character.artifact_count}{' '}
+                {character.artifact_count === 1 ? 'artifact' : 'artifacts'}
               </Badge>
             )}
             {statusLabel && (
@@ -61,7 +57,7 @@ export function CharacterCard({ character, onClick }: CharacterCardProps) {
         {(character.level !== undefined || character.title) && (
           <Text size="sm" c="dimmed" fs="italic">
             {character.level !== undefined
-              ? `Lv.${character.level}${character.title ? ' \u00b7 ' + character.title : ''}`
+              ? `Lv.${character.level}${character.title ? ` \u00b7 ${character.title}` : ''}`
               : character.title}
           </Text>
         )}

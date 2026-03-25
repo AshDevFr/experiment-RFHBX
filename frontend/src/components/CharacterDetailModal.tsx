@@ -1,6 +1,6 @@
 import { Badge, Divider, Group, Loader, Modal, SimpleGrid, Stack, Text } from '@mantine/core';
-import type { Character } from '../schemas/character';
 import { useArtifacts } from '../hooks/useArtifacts';
+import type { Character } from '../schemas/character';
 import { STATUS_COLORS, STATUS_LABELS } from './CharacterCard';
 
 interface CharacterDetailModalProps {

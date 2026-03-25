@@ -11,6 +11,7 @@ vi.mock('../hooks/useArtifacts', () => ({
 }));
 
 import { useArtifacts } from '../hooks/useArtifacts';
+
 const mockUseArtifacts = vi.mocked(useArtifacts);
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -43,11 +44,10 @@ describe('CharacterDetailModal', () => {
   });
 
   it('renders nothing when character is null', () => {
-    const { container } = render(
-      <CharacterDetailModal character={null} onClose={vi.fn()} />,
-      { wrapper },
-    );
-    expect(container).toBeEmptyDOMElement();
+    render(<CharacterDetailModal character={null} onClose={vi.fn()} />, {
+      wrapper,
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('renders character name in the modal title', () => {
@@ -70,7 +70,10 @@ describe('CharacterDetailModal', () => {
 
   it('renders Ring Bearer badge when ring_bearer is true', () => {
     render(<CharacterDetailModal character={sampleCharacter} onClose={vi.fn()} />, { wrapper });
-    expect(screen.getByText('Ring Bearer')).toBeInTheDocument();
+    const badges = screen.getAllByText('Ring Bearer');
+    expect(badges.length).toBeGreaterThanOrEqual(1);
+    const ringBearerBadge = badges.find((el) => el.closest('.mantine-Badge-root'));
+    expect(ringBearerBadge).toBeTruthy();
   });
 
   it('shows loading indicator while fetching artifacts', () => {

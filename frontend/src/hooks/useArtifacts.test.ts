@@ -1,5 +1,5 @@
 import { cleanup, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../lib/api';
 import { useArtifacts } from './useArtifacts';
 
@@ -77,7 +77,7 @@ describe('useArtifacts', () => {
     const { result } = renderHook(() => useArtifacts(42));
 
     expect(result.current.isLoading).toBe(true);
-    resolvePromise!({ data: [] });
+    resolvePromise?.({ data: [] });
   });
 
   it('refetches when characterId changes', async () => {

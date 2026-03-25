@@ -24,7 +24,10 @@ RSpec.describe ArtifactDropService, type: :service do
     subject(:service) { described_class.new(quest) }
 
     context "when rand always rolls under DROP_CHANCE" do
-      before { allow(service).to receive(:rand).with(no_args).and_return(0.0) }
+      before do
+        allow(service).to receive(:rand).with(no_args).and_return(0.0)
+        allow(service).to receive(:rand).with(kind_of(Range)).and_call_original
+      end
 
       it "creates an artifact for each party member" do
         expect { service.call }.to change(Artifact, :count).by(1)
@@ -107,25 +110,28 @@ RSpec.describe ArtifactDropService, type: :service do
       before do
         create(:quest_membership, quest: quest, character: character2)
         allow(service).to receive(:rand).with(no_args).and_return(0.0)
+        allow(service).to receive(:rand).with(kind_of(Range)).and_call_original
       end
 
       it "can drop artifacts for multiple party members" do
         expect { service.call }.to change(Artifact, :count).by(2)
-        expect { }.not_to change(QuestEvent, :count) # already counted above
       end
     end
 
     context "One Ring drop (danger_level 10)" do
       let!(:quest) { create(:quest, :active, danger_level: 10) }
 
+      # Parent before already creates quest_membership for quest+character
+      # (using the overridden quest). No need to create another one.
+
       before do
-        create(:quest_membership, quest: quest, character: character)
         # Force the drop roll to succeed, and the One Ring roll to succeed
         call_count = 0
         allow(service).to receive(:rand).with(no_args) do
           call_count += 1
           call_count == 1 ? 0.0 : 0.05  # first call: drop check, second: One Ring check
         end
+        allow(service).to receive(:rand).with(kind_of(Range)).and_call_original
       end
 
       it "can drop the One Ring at danger_level 10" do
@@ -138,9 +144,12 @@ RSpec.describe ArtifactDropService, type: :service do
     context "One Ring does not drop below danger_level 10" do
       let!(:quest) { create(:quest, :active, danger_level: 9) }
 
+      # Parent before already creates quest_membership for quest+character
+      # (using the overridden quest). No need to create another one.
+
       before do
-        create(:quest_membership, quest: quest, character: character)
         allow(service).to receive(:rand).with(no_args).and_return(0.0)
+        allow(service).to receive(:rand).with(kind_of(Range)).and_call_original
       end
 
       it "never drops the One Ring" do

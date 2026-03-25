@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const EVENT_TYPES = ['started', 'progress', 'completed', 'failed', 'restarted', 'artifact_found'] as const;
+export const EVENT_TYPES = [
+  'started',
+  'progress',
+  'completed',
+  'failed',
+  'restarted',
+  'artifact_found',
+] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 export const questEventSchema = z.object({
