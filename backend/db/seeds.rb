@@ -6,7 +6,7 @@
 #
 # Structure:
 #   1. Characters  — 25 LOTR characters with stats, race, realm, title, status
-#   2. Quests      — 20 canonical quests in campaign_order with danger levels
+#   2. Quests      — 23 canonical quests in campaign_order with danger levels
 #   3. Artifacts   — 16 notable items with stat_bonus jsonb and corrupted flag
 #   4. SimulationConfig  — singleton config, running: false (clean blank state)
 #
@@ -544,6 +544,39 @@ ActiveRecord::Base.transaction do
       region: "Gondor",
       quest_type: "campaign",
       campaign_order: 20,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Farewell to the Shire",
+      description: "Slip away from Bag End under cover of darkness and cross the Shire toward Bucklebury Ferry, shadowed by a Black Rider whose cold whisper carries on the night wind.",
+      status: "pending",
+      danger_level: 1,
+      region: "The Shire",
+      quest_type: "campaign",
+      campaign_order: 21,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Escape from the Barrow-wights",
+      description: "Rescue companions ensnared by an ancient wight in the burial mounds of the Barrow Downs and call upon Tom Bombadil's aid before the evil spirit claims another victim.",
+      status: "pending",
+      danger_level: 3,
+      region: "Barrow Downs",
+      quest_type: "campaign",
+      campaign_order: 22,
+      progress: 0.0,
+      attempts: 0
+    },
+    {
+      title: "Ithilien Ambush",
+      description: "Join Faramir's rangers in a lightning raid on a Haradrim column marching through the ancient forests of Ithilien, striking swiftly and withdrawing before Sauron's forces can regroup.",
+      status: "pending",
+      danger_level: 5,
+      region: "Ithilien",
+      quest_type: "campaign",
+      campaign_order: 23,
       progress: 0.0,
       attempts: 0
     }
