@@ -62,7 +62,7 @@ Rails.application.routes.draw do
       post  "simulation/start",  to: "simulation#start"
       post  "simulation/stop",   to: "simulation#stop"
       post  "simulation/mode",   to: "simulation#mode"
-      patch "simulation/config", to: "simulation#config"
+      patch "simulation/config", to: "simulation#update_config"
       post  "simulation/reset",  to: "simulation#reset"
 
       resources :events, only: %i[index]

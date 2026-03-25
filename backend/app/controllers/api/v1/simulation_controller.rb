@@ -49,7 +49,7 @@ module Api
       end
 
       # PATCH /api/v1/simulation/config
-      def config
+      def update_config
         simulation_config = SimulationConfig.current
         permitted = params.permit(:tick_interval_seconds, :progress_min, :progress_max, :mode)
 
