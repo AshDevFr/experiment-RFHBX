@@ -1129,7 +1129,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
         '422':
-          description: validation failed
+          description: activating a memberless quest is rejected
           content:
             application/json:
               schema:
