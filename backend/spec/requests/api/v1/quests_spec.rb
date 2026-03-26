@@ -339,30 +339,30 @@ RSpec.describe "Api::V1::Quests", type: :request do
         expect(Character.all.pluck(:status).uniq).to eq(["idle"])
       end
 
-      it "zeroes out character level and xp on quest reset" do
+      it "resets character level to 1 and xp to 0 on quest reset" do
         leveled_char = create(:character, level: 5, xp: 2000, status: "on_quest")
         post "/api/v1/quests/reset", params: { confirm: true }
         leveled_char.reload
-        expect(leveled_char.level).to eq(0)
+        expect(leveled_char.level).to eq(1)
         expect(leveled_char.xp).to eq(0)
       end
 
-      it "zeroes out level and xp for multiple characters with different stats" do
+      it "resets level to 1 and xp to 0 for multiple characters with different stats" do
         char_a = create(:character, level: 3, xp: 1000, status: "on_quest")
         char_b = create(:character, level: 7, xp: 5000, status: "idle")
         post "/api/v1/quests/reset", params: { confirm: true }
-        expect(char_a.reload.level).to eq(0)
+        expect(char_a.reload.level).to eq(1)
         expect(char_a.reload.xp).to eq(0)
-        expect(char_b.reload.level).to eq(0)
+        expect(char_b.reload.level).to eq(1)
         expect(char_b.reload.xp).to eq(0)
       end
 
-      it "returns zeroed level and xp for a character via the API after reset" do
+      it "returns level 1 and xp 0 for a character via the API after reset" do
         leveled_char = create(:character, level: 5, xp: 2000, status: "on_quest")
         post "/api/v1/quests/reset", params: { confirm: true }
         get "/api/v1/characters/#{leveled_char.id}"
         expect(response).to have_http_status(:ok)
-        expect(response.parsed_body["level"]).to eq(0)
+        expect(response.parsed_body["level"]).to eq(1)
         expect(response.parsed_body["xp"]).to eq(0)
       end
 
@@ -383,7 +383,7 @@ RSpec.describe "Api::V1::Quests", type: :request do
         expect(Artifact.all.pluck(:character_id).uniq).to eq([nil])
       end
 
-      it "returns zeroed level for fellowship members after reset and re-assignment" do
+      it "returns level 1 for fellowship members after reset and re-assignment" do
         leveled_char = create(:character, level: 5, xp: 2000, status: "idle")
         quest = create(:quest)
         post "/api/v1/quests/reset", params: { confirm: true }
@@ -393,7 +393,7 @@ RSpec.describe "Api::V1::Quests", type: :request do
         get "/api/v1/quests/#{quest.id}"
         member = response.parsed_body["members"].find { |m| m["id"] == leveled_char.id }
         expect(member).not_to be_nil
-        expect(member["level"]).to eq(0)
+        expect(member["level"]).to eq(1)
       end
     end
   end
