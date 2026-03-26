@@ -366,6 +366,23 @@ RSpec.describe "Api::V1::Quests", type: :request do
         expect(response.parsed_body["xp"]).to eq(0)
       end
 
+      it "clears character_id on all artifacts after reset" do
+        character = create(:character, status: "on_quest")
+        create_list(:artifact, 3, character: character)
+        expect(Artifact.where.not(character_id: nil).count).to eq(3)
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(Artifact.where.not(character_id: nil).count).to eq(0)
+      end
+
+      it "preserves artifact records but unlinks them from characters" do
+        character = create(:character, status: "on_quest")
+        create_list(:artifact, 2, character: character)
+        artifact_count = Artifact.count
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(Artifact.count).to eq(artifact_count)
+        expect(Artifact.all.pluck(:character_id).uniq).to eq([nil])
+      end
+
       it "returns zeroed level for fellowship members after reset and re-assignment" do
         leveled_char = create(:character, level: 5, xp: 2000, status: "idle")
         quest = create(:quest)
