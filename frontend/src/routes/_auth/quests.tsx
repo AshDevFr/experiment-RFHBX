@@ -94,10 +94,17 @@ export function QuestsPage() {
   //   { event_type, quest_id, quest_name, region, message, data, occurred_at }
   // Progress ticks arrive as event_type "progress" with data.progress (0.0–1.0).
   // Status transitions arrive as event_type "completed" | "failed" | "started" | "restarted".
+  //
+  // Race-condition guard: ActionCable does not guarantee delivery order. A stale
+  // progress broadcast (lower value, older tick) could arrive after a newer one
+  // has already been applied, causing the bar to jump backward. We guard against
+  // this at two levels:
+  //   1. useQuestEventsChannel drops progress events with an older occurred_at.
+  //   2. Here, progress from a "progress" event is applied only if it is >= the
+  //      quest's current value (monotonic guard). Explicit resets via "restarted"
+  //      bypass this guard because they carry progress = 0 in the patch directly.
   useEffect(() => {
     if (!latestEvent) return;
-
-    const patch: Partial<Quest> = {};
 
     // Derive status from event_type.
     const eventType =
@@ -105,6 +112,8 @@ export function QuestsPage() {
         ? latestEvent.event_type
         : null;
 
+    // Status / explicit-reset patch (applied unconditionally).
+    const patch: Partial<Quest> = {};
     if (eventType === 'completed') {
       patch.status = 'completed';
     } else if (eventType === 'failed') {
@@ -113,23 +122,42 @@ export function QuestsPage() {
       patch.status = 'active';
     } else if (eventType === 'restarted') {
       patch.status = 'active';
-      patch.progress = 0;
+      patch.progress = 0; // explicit server-side reset — always apply
     }
 
     // Read live progress value from data.progress (backend sends 0.0–1.0).
+    // For "progress" events we do NOT put this into `patch` directly; instead
+    // we pass it through as `serverProgress` and apply it monotonically inside
+    // the state updaters so we never overwrite a higher value with a stale one.
     const eventData =
       'data' in latestEvent && latestEvent.data !== null && typeof latestEvent.data === 'object'
         ? (latestEvent.data as Record<string, unknown>)
         : null;
 
-    if (eventData !== null && 'progress' in eventData && typeof eventData.progress === 'number') {
-      patch.progress = eventData.progress;
-    }
+    const serverProgress =
+      eventType === 'progress' &&
+      eventData !== null &&
+      'progress' in eventData &&
+      typeof eventData.progress === 'number'
+        ? eventData.progress
+        : undefined;
 
-    if (Object.keys(patch).length === 0) return;
+    if (Object.keys(patch).length === 0 && serverProgress === undefined) return;
 
-    const applyPatch = (q: Quest): Quest =>
-      q.id === latestEvent.quest_id ? { ...q, ...patch } : q;
+    // applyPatch merges the status/reset patch and, for progress events, only
+    // advances progress (never regresses it) to survive out-of-order broadcasts.
+    const applyPatch = (q: Quest): Quest => {
+      if (q.id !== latestEvent.quest_id) return q;
+      const next: Quest = { ...q, ...patch };
+      if (serverProgress !== undefined) {
+        const current = typeof q.progress === 'number' ? q.progress : 0;
+        if (serverProgress >= current) {
+          next.progress = serverProgress;
+        }
+        // else: stale broadcast arrived after a newer tick — keep current value
+      }
+      return next;
+    };
 
     setLiveQuests((prev) => prev.map(applyPatch));
     setSelectedQuest((prev) => (prev ? applyPatch(prev) : null));

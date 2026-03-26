@@ -529,4 +529,170 @@ describe('QuestsPage', () => {
       expect(bar).toHaveAttribute('aria-valuenow', '55');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Monotonic progress guard tests — verify stale broadcasts cannot regress the
+  // progress bar backward (the root cause of the flickering reported in #198).
+  // ---------------------------------------------------------------------------
+  describe('monotonic progress guard (anti-flicker, issue #198)', () => {
+    it('does NOT apply a stale progress event that is lower than current progress', () => {
+      // Quest is already at 0.7 (70 %) from a previous tick.
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.7 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      // A stale broadcast arrives with an older, lower value (0.3).
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.3, increment: 0.05 },
+          occurred_at: '2026-01-01T00:00:01.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      // Progress bar must stay at 70 — stale value (30) must be ignored.
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '70');
+    });
+
+    it('DOES apply a valid progress event that advances beyond current progress', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.4 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.65, increment: 0.05 },
+          occurred_at: '2026-01-01T00:00:05.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '65');
+    });
+
+    it('DOES apply a progress event equal to current value (idempotent tick)', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.5 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.5, increment: 0.0 },
+          occurred_at: '2026-01-01T00:00:04.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '50');
+    });
+
+    it('restarted event resets progress to 0 even when current progress is high', () => {
+      // Quest at 90 % — restarted must reset to 0 (explicit server reset).
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.9 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'restarted',
+          quest_id: 2,
+          data: { attempt: 2 },
+          occurred_at: '2026-01-01T00:00:10.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '0');
+    });
+
+    it('applies advancing progress ticks sequentially without regression', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.1 }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: null,
+        connectionStatus: 'connected',
+      });
+
+      const { rerender } = render(<QuestsPage />, { wrapper });
+      let bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '10');
+
+      // Tick 1: advance to 30 %
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.3, increment: 0.2 },
+          occurred_at: '2026-01-01T00:00:02.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+      act(() => rerender(<QuestsPage />));
+      bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '30');
+
+      // Tick 2 (stale, arrives late): would drop back to 20 % — must be ignored
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.2, increment: 0.1 },
+          occurred_at: '2026-01-01T00:00:01.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+      act(() => rerender(<QuestsPage />));
+      bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '30'); // still 30, not 20
+
+      // Tick 3: legitimate advance to 50 %
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.5, increment: 0.2 },
+          occurred_at: '2026-01-01T00:00:03.000Z',
+        },
+        connectionStatus: 'connected',
+      });
+      act(() => rerender(<QuestsPage />));
+      bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '50');
+    });
+  });
 });
