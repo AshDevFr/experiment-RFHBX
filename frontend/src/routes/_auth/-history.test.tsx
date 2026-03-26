@@ -152,6 +152,28 @@ describe('HistoryPage', () => {
       expect(screen.getByText('Message')).toBeInTheDocument();
     });
 
+    it('Type column header has whiteSpace nowrap to prevent text clipping (#189)', () => {
+      mockUseQuestEventHistory.mockReturnValue({ ...baseHookValue, events: [] });
+
+      render(<HistoryPage />, { wrapper });
+
+      const typeHeader = screen.getByRole('columnheader', { name: 'Type' });
+      expect(typeHeader).toHaveStyle({ whiteSpace: 'nowrap' });
+    });
+
+    it('Type column cells have whiteSpace nowrap to prevent badge clipping (#189)', () => {
+      mockUseQuestEventHistory.mockReturnValue({ ...baseHookValue, events: sampleEvents });
+
+      render(<HistoryPage />, { wrapper });
+
+      // Each event row's third cell (index 2) is the Type cell — must have whiteSpace: nowrap
+      const rows = screen.getAllByTestId('event-row');
+      for (const row of rows) {
+        const typeCell = within(row).getAllByRole('cell')[2];
+        expect(typeCell).toHaveStyle({ whiteSpace: 'nowrap' });
+      }
+    });
+
     it('shows the event count summary', () => {
       mockUseQuestEventHistory.mockReturnValue({
         ...baseHookValue,

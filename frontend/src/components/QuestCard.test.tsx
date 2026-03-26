@@ -224,4 +224,45 @@ describe('QuestCard', () => {
     expect(bar).toHaveAttribute('aria-label', 'Quest progress: 100%');
     expect(bar).toHaveAttribute('aria-valuenow', '100');
   });
+
+  // ---------------------------------------------------------------------------
+  // Layout tests — verify consistent card height and button anchoring (#188)
+  // ---------------------------------------------------------------------------
+  describe('card layout', () => {
+    it('card root has flex column layout for consistent height', () => {
+      render(<QuestCard quest={sampleQuest} onClick={vi.fn()} />, { wrapper });
+
+      const card = screen.getByTestId('quest-card');
+      expect(card).toHaveStyle({ display: 'flex', flexDirection: 'column', height: '100%' });
+    });
+
+    it('renders the advance button outside the content stack when applicable', () => {
+      const pendingQuest: Quest = { ...sampleQuest, status: 'pending' };
+      const handleAdvance = vi.fn();
+      render(<QuestCard quest={pendingQuest} onClick={vi.fn()} onAdvance={handleAdvance} />, {
+        wrapper,
+      });
+
+      const card = screen.getByTestId('quest-card');
+      const btn = screen.getByText('Advance → Active').closest('button');
+      expect(btn).toBeInTheDocument();
+      // Button must be a direct or shallow descendant of the card, not buried inside the Stack
+      expect(card).toContainElement(btn);
+    });
+
+    it('does not render advance button for completed quests', () => {
+      const completedQuest: Quest = { ...sampleQuest, status: 'completed', progress: 1.0 };
+      render(<QuestCard quest={completedQuest} onClick={vi.fn()} onAdvance={vi.fn()} />, {
+        wrapper,
+      });
+
+      expect(screen.queryByText(/Advance/)).not.toBeInTheDocument();
+    });
+
+    it('does not render advance button when onAdvance is not provided', () => {
+      render(<QuestCard quest={sampleQuest} onClick={vi.fn()} />, { wrapper });
+
+      expect(screen.queryByText(/Advance/)).not.toBeInTheDocument();
+    });
+  });
 });
