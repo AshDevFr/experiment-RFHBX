@@ -50,11 +50,11 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
       padding="md"
       radius="md"
       withBorder
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }}
       onClick={() => onClick(quest)}
       data-testid="quest-card"
     >
-      <Stack gap="xs">
+      <Stack gap="xs" style={{ flex: 1 }}>
         <Group justify="space-between" align="flex-start">
           <Text fw={700} size="md" style={{ flex: 1 }}>
             {quest.title}
@@ -105,22 +105,22 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
             ))}
           </Group>
         )}
-
-        {onAdvance && nextStatus && (
-          <Button
-            size="xs"
-            variant="light"
-            color={STATUS_COLORS[nextStatus] ?? 'blue'}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdvance(quest);
-            }}
-            mt="xs"
-          >
-            Advance → {STATUS_LABELS[nextStatus] ?? nextStatus}
-          </Button>
-        )}
       </Stack>
+
+      {onAdvance && nextStatus && (
+        <Button
+          size="xs"
+          variant="light"
+          color={STATUS_COLORS[nextStatus] ?? 'blue'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdvance(quest);
+          }}
+          mt="xs"
+        >
+          Advance → {STATUS_LABELS[nextStatus] ?? nextStatus}
+        </Button>
+      )}
     </Card>
   );
 }

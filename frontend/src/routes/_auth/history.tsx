@@ -149,7 +149,7 @@ export function HistoryPage() {
           <Table.Tr>
             <Table.Th style={{ whiteSpace: 'nowrap' }}>Timestamp</Table.Th>
             <Table.Th>Quest</Table.Th>
-            <Table.Th>Type</Table.Th>
+            <Table.Th style={{ whiteSpace: 'nowrap' }}>Type</Table.Th>
             <Table.Th>Message</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -173,7 +173,7 @@ export function HistoryPage() {
                   {formatTimestamp(event.created_at)}
                 </Table.Td>
                 <Table.Td>{event.quest_title}</Table.Td>
-                <Table.Td>
+                <Table.Td style={{ whiteSpace: 'nowrap' }}>
                   <Badge
                     color={EVENT_TYPE_COLORS[event.event_type]}
                     variant="light"
