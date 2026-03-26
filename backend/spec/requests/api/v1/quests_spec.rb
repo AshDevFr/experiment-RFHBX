@@ -395,6 +395,30 @@ RSpec.describe "Api::V1::Quests", type: :request do
         expect(member).not_to be_nil
         expect(member["level"]).to eq(1)
       end
+
+      it "resets SimulationConfig campaign_position to 0" do
+        SimulationConfig.current.update!(campaign_position: 15, tick_count: 212)
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(SimulationConfig.current.campaign_position).to eq(0)
+      end
+
+      it "resets SimulationConfig tick_count to 0" do
+        SimulationConfig.current.update!(campaign_position: 15, tick_count: 212)
+        post "/api/v1/quests/reset", params: { confirm: true }
+        expect(SimulationConfig.current.tick_count).to eq(0)
+      end
+
+      it "enqueues QuestAutoStartWorker when simulation is running" do
+        SimulationConfig.current.update!(running: true)
+        expect(QuestAutoStartWorker).to receive(:perform_async)
+        post "/api/v1/quests/reset", params: { confirm: true }
+      end
+
+      it "does not enqueue QuestAutoStartWorker when simulation is stopped" do
+        SimulationConfig.current.update!(running: false)
+        expect(QuestAutoStartWorker).not_to receive(:perform_async)
+        post "/api/v1/quests/reset", params: { confirm: true }
+      end
     end
   end
 

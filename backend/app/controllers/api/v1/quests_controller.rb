@@ -61,7 +61,12 @@ module Api
           Artifact.update_all(character_id: nil)
           Quest.update_all(status: "pending", progress: 0.0, attempts: 0)
           Character.update_all(status: "idle", level: 1, xp: 0)
+
+          config = SimulationConfig.current
+          config.update!(campaign_position: 0, tick_count: 0)
         end
+
+        QuestAutoStartWorker.perform_async if SimulationConfig.current.running?
 
         render json: { message: "All quests reset to pending state", count: Quest.count }
       end
