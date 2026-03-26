@@ -45,6 +45,14 @@ RSpec.describe "db/seeds", type: :model do
         expect(valid_statuses).to include(c.status), "#{c.name} has invalid status: #{c.status}"
       end
     end
+
+    it "seeds Boromir, Saruman, and Sauron as idle on a fresh seed" do
+      %w[Boromir Saruman Sauron].each do |name|
+        character = Character.find_by!(name: name)
+        expect(character.status).to eq("idle"),
+          "Expected #{name} to start idle on a clean server start, got #{character.status}"
+      end
+    end
   end
 
   describe "Quest seeds" do

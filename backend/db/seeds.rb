@@ -102,7 +102,7 @@ ActiveRecord::Base.transaction do
       realm: "Gondor",
       title: "Captain of the White Tower",
       ring_bearer: false,
-      status: "fallen",
+      status: "idle",
       strength: 18,
       wisdom: 9,
       endurance: 15
@@ -180,7 +180,7 @@ ActiveRecord::Base.transaction do
       realm: "Isengard",
       title: "The White (fallen)",
       ring_bearer: false,
-      status: "fallen",
+      status: "idle",
       strength: 13,
       wisdom: 18,
       endurance: 12
@@ -191,7 +191,7 @@ ActiveRecord::Base.transaction do
       realm: "Mordor",
       title: "The Dark Lord",
       ring_bearer: false,
-      status: "fallen",
+      status: "idle",
       strength: 20,
       wisdom: 17,
       endurance: 20
