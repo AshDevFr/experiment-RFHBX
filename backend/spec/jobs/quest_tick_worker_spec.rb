@@ -113,10 +113,15 @@ RSpec.describe QuestTickWorker, type: :job do
         expect(event).to be_present
         expect(event.data["result"]).to eq("success")
       end
+
+      it "shows attempts as 1 for a quest that succeeds on its first run" do
+        subject.perform
+        expect(quest.reload.attempts).to eq(1)
+      end
     end
 
     context "quest completion — failure" do
-      let!(:quest) { create(:quest, :active, danger_level: 10, progress: 0.99, attempts: 0) }
+      let!(:quest) { create(:quest, :active, danger_level: 10, progress: 0.99, attempts: 1) }
       let!(:character) do
         create(:character, status: :on_quest, strength: 5, wisdom: 5, endurance: 5, level: 1, xp: 0)
       end
@@ -134,9 +139,10 @@ RSpec.describe QuestTickWorker, type: :job do
         expect(character.reload.xp).to eq(250) # danger_level 10 * 25
       end
 
-      it "increments attempts on failure" do
+      it "does not increment attempts on failure (incremented at activation instead)" do
         subject.perform
-        expect(quest.reload.attempts).to eq(1)
+        # After failure the quest is re-activated → attempts incremented to 2
+        expect(quest.reload.attempts).to eq(2)
       end
 
       it "resets progress and re-activates the quest" do
@@ -383,7 +389,7 @@ RSpec.describe QuestTickWorker, type: :job do
   describe "level_up events during quest failure" do
     subject(:worker) { described_class.new }
 
-    let!(:quest) { create(:quest, :active, danger_level: 10, progress: 0.99, attempts: 0) }
+    let!(:quest) { create(:quest, :active, danger_level: 10, progress: 0.99, attempts: 1) }
     # danger_level 10 * 25 = 250 XP on failure; start at xp: 800 so 800 + 250 = 1050 >= 1000 (L2)
     let!(:character) do
       create(:character, status: :on_quest, strength: 5, wisdom: 5, endurance: 5, level: 1, xp: 800)

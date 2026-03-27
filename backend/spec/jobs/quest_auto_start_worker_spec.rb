@@ -122,6 +122,12 @@ RSpec.describe QuestAutoStartWorker, type: :job do
       expect(event).to be_present
     end
 
+    it "sets attempts to 1 on first activation" do
+      create_list(:character, 2, status: :idle)
+      worker.perform
+      expect(quest1.reload.attempts).to eq(1)
+    end
+
     it "updates campaign_position on the config" do
       create_list(:character, 2, status: :idle)
       worker.perform
@@ -178,6 +184,13 @@ RSpec.describe QuestAutoStartWorker, type: :job do
       worker.perform
       quest = Quest.where(quest_type: :random).last
       expect(quest.status).to eq("active")
+    end
+
+    it "sets attempts to 1 on random quest activation" do
+      create_list(:character, 3, status: :idle)
+      worker.perform
+      quest = Quest.where(quest_type: :random, status: :active).last
+      expect(quest.attempts).to eq(1)
     end
 
     it "assigns 2-4 idle characters to the quest" do

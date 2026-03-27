@@ -96,7 +96,7 @@ class QuestAutoStartWorker
     end
 
     quest.characters.each { |character| character.update!(status: :on_quest) }
-    quest.update!(status: :active, progress: 0.0)
+    quest.update!(status: :active, progress: 0.0, attempts: quest.attempts + 1)
     config.update!(campaign_position: quest.campaign_order || 0)
 
     event = QuestEvent.create!(
@@ -127,7 +127,7 @@ class QuestAutoStartWorker
       character.update!(status: :on_quest)
     end
 
-    quest.update!(status: :active)
+    quest.update!(status: :active, attempts: quest.attempts + 1)
 
     event = QuestEvent.create!(
       quest: quest,

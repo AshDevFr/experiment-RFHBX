@@ -138,8 +138,7 @@ class QuestTickWorker
     end
 
     quest.update!(
-      status: :failed,
-      attempts: quest.attempts + 1
+      status: :failed
     )
 
     failed_event = QuestEvent.create!(
@@ -151,14 +150,14 @@ class QuestTickWorker
 
     QuestEventBroadcaster.broadcast(failed_event)
 
-    # Reset and re-activate with same party
-    quest.update!(status: :active, progress: 0.0)
+    # Reset and re-activate with same party — increment attempts for the new run
+    quest.update!(status: :active, progress: 0.0, attempts: quest.attempts + 1)
 
     restarted_event = QuestEvent.create!(
       quest: quest,
       event_type: :restarted,
-      message: "#{quest.title} has been restarted (attempt ##{quest.attempts + 1}).",
-      data: { attempt: quest.attempts + 1 }
+      message: "#{quest.title} has been restarted (attempt ##{quest.attempts}).",
+      data: { attempt: quest.attempts }
     )
 
     QuestEventBroadcaster.broadcast(restarted_event)
@@ -234,7 +233,7 @@ class QuestTickWorker
       character.update!(status: :on_quest)
     end
 
-    quest.update!(status: :active, progress: 0.0)
+    quest.update!(status: :active, progress: 0.0, attempts: quest.attempts + 1)
     config.update!(campaign_position: quest.campaign_order || 0)
 
     QuestEvent.create!(
@@ -261,7 +260,7 @@ class QuestTickWorker
       character.update!(status: :on_quest)
     end
 
-    quest.update!(status: :active)
+    quest.update!(status: :active, attempts: quest.attempts + 1)
 
     QuestEvent.create!(
       quest: quest,
