@@ -85,19 +85,10 @@ describe('useSauronGazeChannel', () => {
     expect(mockUnsubscribe).toHaveBeenCalledOnce();
   });
 
-  it('does not call unsubscribe immediately if component unmounts before confirmation (race condition)', () => {
+  it('unsubscribes immediately on unmount even before confirmation (prevents leaked subscriptions)', () => {
     const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
-    // Unmount before connected() fires — must NOT send unsubscribe yet
+    // Unmount before connected() fires — must still unsubscribe to prevent leak
     unmount();
-    expect(mockUnsubscribe).not.toHaveBeenCalled();
-  });
-
-  it('issues a deferred unsubscribe when connected() fires after component has unmounted', () => {
-    const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
-    unmount();
-    expect(mockUnsubscribe).not.toHaveBeenCalled();
-    // Server confirms subscription after unmount — deferred cleanup fires
-    act(() => capturedCallbacks.connected?.());
     expect(mockUnsubscribe).toHaveBeenCalledOnce();
   });
 
@@ -109,6 +100,17 @@ describe('useSauronGazeChannel', () => {
     });
     const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
     act(() => capturedCallbacks.connected?.());
+    expect(() => unmount()).not.toThrow();
+  });
+
+  it('does not throw when unsubscribe fails on unmount before confirmation', () => {
+    mockUnsubscribe.mockImplementationOnce(() => {
+      throw new Error(
+        'Unable to find subscription with identifier: {"channel":"SauronGazeChannel"}',
+      );
+    });
+    const { unmount } = renderHook(() => useSauronGazeChannel(), { wrapper });
+    // Unmount before connected() — try/catch handles the error gracefully
     expect(() => unmount()).not.toThrow();
   });
 });

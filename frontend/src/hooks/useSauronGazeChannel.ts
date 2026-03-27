@@ -24,34 +24,13 @@ export function useSauronGazeChannel(): UseSauronGazeChannelResult {
   const subscriptionRef = useRef<ReturnType<typeof consumer.subscriptions.create> | null>(null);
 
   useEffect(() => {
-    // Track whether the server has confirmed this subscription.
-    // ActionCable raises RuntimeError if `unsubscribe` is called before
-    // confirmation arrives, so we only call it once `connected()` has fired.
-    let isConnected = false;
-    // Track whether the component unmounted before confirmation so we can
-    // issue a deferred unsubscribe from inside the connected() callback.
-    let unmounted = false;
-
     subscriptionRef.current = consumer.subscriptions.create(
       { channel: 'SauronGazeChannel' },
       {
         connected() {
-          isConnected = true;
-          if (unmounted) {
-            // Component unmounted while confirmation was in flight.
-            // Issue the deferred unsubscribe now that the server has confirmed.
-            try {
-              subscriptionRef.current?.unsubscribe();
-            } catch {
-              // already removed
-            }
-            subscriptionRef.current = null;
-            return;
-          }
           setConnectionStatus('connected');
         },
         disconnected() {
-          isConnected = false;
           setConnectionStatus('disconnected');
         },
         rejected() {
@@ -64,20 +43,13 @@ export function useSauronGazeChannel(): UseSauronGazeChannelResult {
     );
 
     return () => {
-      unmounted = true;
-      if (isConnected) {
-        // Subscription is confirmed — safe to unsubscribe immediately.
-        try {
-          subscriptionRef.current?.unsubscribe();
-        } catch {
-          // Subscription may already be removed if the consumer was disconnected
-          // (e.g. token refresh) before this cleanup ran.
-        }
-        subscriptionRef.current = null;
+      try {
+        subscriptionRef.current?.unsubscribe();
+      } catch {
+        // Subscription may already be removed if not yet confirmed
+        // or if the consumer was disconnected.
       }
-      // If !isConnected: connected() hasn't fired yet.
-      // Setting unmounted=true above causes the connected() callback to issue
-      // the deferred unsubscribe once the server confirms the subscription.
+      subscriptionRef.current = null;
     };
   }, [consumer]);
 

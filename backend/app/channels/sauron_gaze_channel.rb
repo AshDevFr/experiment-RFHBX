@@ -2,7 +2,7 @@
 
 class SauronGazeChannel < ApplicationCable::Channel
   def subscribed
-    reject unless current_principal.present?
+    return reject unless current_principal.present?
 
     stream_from "sauron_gaze"
   end

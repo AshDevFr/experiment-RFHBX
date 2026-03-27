@@ -25,6 +25,13 @@ RSpec.describe SauronGazeChannel, type: :channel do
 
         expect(subscription).to be_rejected
       end
+
+      it "does not stream from sauron_gaze" do
+        subscribe
+
+        expect(subscription).to be_rejected
+        expect(subscription.streams).to be_empty
+      end
     end
   end
 
