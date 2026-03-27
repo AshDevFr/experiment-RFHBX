@@ -312,7 +312,7 @@ RSpec.configure do |config|
                 description: "Minimum tick progress increment (decimal string)"
               },
               progress_max: {
-                type: :string, example: "0.1000",
+                type: :string, example: "0.0500",
                 description: "Maximum tick progress increment (decimal string)"
               },
               campaign_position: { type: :integer, example: 0 },
