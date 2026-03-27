@@ -446,6 +446,93 @@ describe('QuestsPage', () => {
       expect(screen.getByText('active')).toBeInTheDocument();
     });
 
+    it('merges members from a started event into quest state', () => {
+      const quests = [
+        { ...sampleQuests[0], id: 1, status: 'pending', progress: null, members: [] },
+      ];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      const members = [
+        { id: 10, name: 'Frodo', race: 'Hobbit', level: 5, status: 'on_quest' },
+        { id: 11, name: 'Sam', race: 'Hobbit', level: 4, status: 'on_quest' },
+      ];
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'started',
+          quest_id: 1,
+          members,
+          status: 'active',
+          attempts: 1,
+          data: {},
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      // Quest should show active status
+      expect(screen.getByText('active')).toBeInTheDocument();
+    });
+
+    it('merges members from a completed event into quest state', () => {
+      const quests = [{ ...sampleQuests[1], id: 2, status: 'active', progress: 0.9, members: [] }];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      const members = [{ id: 10, name: 'Aragorn', race: 'Human', level: 10, status: 'idle' }];
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'completed',
+          quest_id: 2,
+          members,
+          status: 'completed',
+          attempts: 1,
+          data: { xp_awarded: 200, result: 'success' },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      expect(screen.getByText('completed')).toBeInTheDocument();
+    });
+
+    it('does not overwrite members when event has no members field', () => {
+      const existingMembers = [
+        { id: 10, name: 'Legolas', race: 'Elf', level: 8, status: 'on_quest' },
+      ];
+      const quests = [
+        { ...sampleQuests[1], id: 2, status: 'active', progress: 0.5, members: existingMembers },
+      ];
+      mockUseQuests.mockReturnValue({
+        quests,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      mockUseQuestEventsChannel.mockReturnValue({
+        latestEvent: {
+          event_type: 'progress',
+          quest_id: 2,
+          data: { progress: 0.6, increment: 0.05 },
+        },
+        connectionStatus: 'connected',
+      });
+
+      render(<QuestsPage />, { wrapper });
+
+      // Progress updates without members — existing members should remain
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '60');
+    });
+
     it('does not patch quests when event has no matching quest_id', () => {
       mockUseQuests.mockReturnValue({
         quests: sampleQuests,

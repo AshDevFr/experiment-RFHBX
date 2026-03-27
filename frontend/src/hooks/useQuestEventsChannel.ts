@@ -12,6 +12,16 @@ export interface QuestEvent {
   message?: string;
   data?: Record<string, unknown>;
   occurred_at?: string;
+  /** Present on status-transition events (started/completed/failed/restarted). */
+  members?: Array<{
+    id: number;
+    name: string;
+    race: string;
+    level?: number | null;
+    status?: string | null;
+  }>;
+  status?: string;
+  attempts?: number;
   // biome-ignore lint/suspicious/noExplicitAny: mirrors Action Cable's BaseMixin.received signature
   [key: string]: any;
 }

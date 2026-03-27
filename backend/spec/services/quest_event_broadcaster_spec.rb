@@ -90,6 +90,58 @@ RSpec.describe QuestEventBroadcaster do
     end
   end
 
+  describe "status-transition payload includes members, status, and attempts" do
+    let(:character) { create(:character, name: "Frodo", race: "Hobbit", level: 5, status: :on_quest) }
+
+    before do
+      create(:quest_membership, quest: quest, character: character)
+      allow(ActionCable.server).to receive(:broadcast) do |_stream, data|
+        @captured_payload = data
+      end
+    end
+
+    %i[started completed failed restarted].each do |event_type_trait|
+      context "for #{event_type_trait} events" do
+        let(:status_event) { create(:quest_event, event_type_trait, quest: quest) }
+
+        before { described_class.broadcast(status_event) }
+
+        it "includes members array with character data" do
+          expect(@captured_payload[:members]).to be_an(Array)
+          member = @captured_payload[:members].first
+          expect(member["id"]).to eq(character.id)
+          expect(member["name"]).to eq("Frodo")
+          expect(member["race"]).to eq("Hobbit")
+          expect(member["level"]).to eq(5)
+        end
+
+        it "includes quest status" do
+          expect(@captured_payload[:status]).to eq(quest.status)
+        end
+
+        it "includes quest attempts" do
+          expect(@captured_payload[:attempts]).to eq(quest.attempts)
+        end
+      end
+    end
+
+    context "for progress events" do
+      before { described_class.broadcast(quest_event) }
+
+      it "does not include members" do
+        expect(@captured_payload).not_to have_key(:members)
+      end
+
+      it "does not include status" do
+        expect(@captured_payload).not_to have_key(:status)
+      end
+
+      it "does not include attempts" do
+        expect(@captured_payload).not_to have_key(:attempts)
+      end
+    end
+  end
+
   describe "broadcast to empty channel" do
     it "does not raise when no subscribers are listening" do
       expect { described_class.broadcast(quest_event) }.not_to raise_error

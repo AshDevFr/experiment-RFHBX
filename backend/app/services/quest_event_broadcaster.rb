@@ -10,6 +10,7 @@
 #   QuestEventBroadcaster.new(quest_event).broadcast
 class QuestEventBroadcaster
   GLOBAL_STREAM = "quest_events"
+  STATUS_EVENTS = %w[started completed failed restarted].freeze
 
   attr_reader :quest_event
 
@@ -37,7 +38,7 @@ class QuestEventBroadcaster
   def build_payload
     quest = quest_event.quest
 
-    {
+    payload = {
       event_type: quest_event.event_type,
       quest_id: quest.id,
       quest_name: quest.title,
@@ -46,5 +47,13 @@ class QuestEventBroadcaster
       data: quest_event.data,
       occurred_at: quest_event.created_at&.iso8601
     }
+
+    if STATUS_EVENTS.include?(quest_event.event_type)
+      payload[:members] = quest.characters.as_json(only: %i[id name race level status])
+      payload[:status] = quest.status
+      payload[:attempts] = quest.attempts
+    end
+
+    payload
   end
 end

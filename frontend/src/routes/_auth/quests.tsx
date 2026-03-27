@@ -149,6 +149,12 @@ export function QuestsPage() {
     const applyPatch = (q: Quest): Quest => {
       if (q.id !== latestEvent.quest_id) return q;
       const next: Quest = { ...q, ...patch };
+
+      // Apply members from status-transition broadcasts
+      if (Array.isArray(latestEvent.members)) {
+        next.members = latestEvent.members;
+      }
+
       if (serverProgress !== undefined) {
         const current = typeof q.progress === 'number' ? q.progress : 0;
         if (serverProgress >= current) {
