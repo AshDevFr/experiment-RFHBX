@@ -63,7 +63,7 @@ export function SimulationStatusPanel({ config, isActing, onStart, onStop }: Sta
           </Badge>
         </Group>
 
-        <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+        <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="sm">
           <Stack gap={2}>
             <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
               Mode
@@ -79,15 +79,6 @@ export function SimulationStatusPanel({ config, isActing, onStart, onStop }: Sta
             </Text>
             <Text fw={700} data-testid="tick-count">
               {config.tick_count ?? 0}
-            </Text>
-          </Stack>
-
-          <Stack gap={2}>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-              Tick Interval
-            </Text>
-            <Text fw={700} data-testid="tick-interval">
-              {config.tick_interval_seconds}s
             </Text>
           </Stack>
 
@@ -132,25 +123,18 @@ export function SimulationStatusPanel({ config, isActing, onStart, onStop }: Sta
 // ---------------------------------------------------------------------------
 
 interface ConfigFormValues {
-  tick_interval_seconds: number | string;
   progress_min: number | string;
   progress_max: number | string;
   mode: 'campaign' | 'random';
 }
 
 interface ConfigFormErrors {
-  tick_interval_seconds?: string;
   progress_min?: string;
   progress_max?: string;
 }
 
 export function validateConfigForm(values: ConfigFormValues): ConfigFormErrors {
   const errors: ConfigFormErrors = {};
-
-  const interval = Number(values.tick_interval_seconds);
-  if (!Number.isFinite(interval) || interval <= 0) {
-    errors.tick_interval_seconds = 'Tick interval must be greater than 0';
-  }
 
   const min = Number(values.progress_min);
   const max = Number(values.progress_max);
@@ -182,7 +166,6 @@ const MODE_OPTIONS = [
 
 export function SimulationConfigForm({ config, isActing, onSubmit }: ConfigFormProps) {
   const [values, setValues] = useState<ConfigFormValues>({
-    tick_interval_seconds: config.tick_interval_seconds,
     progress_min: config.progress_min,
     progress_max: config.progress_max,
     mode: config.mode,
@@ -193,12 +176,11 @@ export function SimulationConfigForm({ config, isActing, onSubmit }: ConfigFormP
   // Sync form when upstream config changes (e.g. after polling refresh)
   useEffect(() => {
     setValues({
-      tick_interval_seconds: config.tick_interval_seconds,
       progress_min: config.progress_min,
       progress_max: config.progress_max,
       mode: config.mode,
     });
-  }, [config.tick_interval_seconds, config.progress_min, config.progress_max, config.mode]);
+  }, [config.progress_min, config.progress_max, config.mode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -209,7 +191,6 @@ export function SimulationConfigForm({ config, isActing, onSubmit }: ConfigFormP
     setSubmitting(true);
     try {
       await onSubmit({
-        tick_interval_seconds: Number(values.tick_interval_seconds),
         progress_min: Number(values.progress_min),
         progress_max: Number(values.progress_max),
         mode: values.mode,
@@ -241,20 +222,10 @@ export function SimulationConfigForm({ config, isActing, onSubmit }: ConfigFormP
             data-testid="mode-select"
           />
 
-          <NumberInput
-            label="Tick interval (seconds)"
-            description="Simulation clock speed: seconds between each tick (stored in DB, takes precedence over the QUEST_TICK_INTERVAL env var). Must be > 0."
-            min={1}
-            value={values.tick_interval_seconds}
-            onChange={(v) => setValues((prev) => ({ ...prev, tick_interval_seconds: v }))}
-            error={formErrors.tick_interval_seconds}
-            data-testid="tick-interval-input"
-          />
-
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             <NumberInput
               label="Progress min"
-              description="Minimum tick progress (0–1)"
+              description="Minimum tick progress (0-1)"
               min={0}
               max={1}
               step={0.01}
@@ -266,7 +237,7 @@ export function SimulationConfigForm({ config, isActing, onSubmit }: ConfigFormP
             />
             <NumberInput
               label="Progress max"
-              description="Maximum tick progress (0–1)"
+              description="Maximum tick progress (0-1)"
               min={0}
               max={1}
               step={0.01}

@@ -306,7 +306,6 @@ RSpec.configure do |config|
               id: { type: :integer, example: 1 },
               mode: { type: :string, enum: %w[campaign random], example: "campaign" },
               running: { type: :boolean, example: false },
-              tick_interval_seconds: { type: :integer, example: 60 },
               # decimal columns — Rails serializes as strings
               progress_min: {
                 type: :string, example: "0.0100",

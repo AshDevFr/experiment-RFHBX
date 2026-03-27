@@ -14,10 +14,7 @@ module Api
       # POST /api/v1/simulation/start
       def start
         config = SimulationConfig.current
-        unless config.running?
-          config.update!(running: true)
-          QuestTickWorker.perform_async
-        end
+        config.update!(running: true) unless config.running?
         render json: config
       end
 
@@ -51,7 +48,7 @@ module Api
       # PATCH /api/v1/simulation/config
       def update_config
         simulation_config = SimulationConfig.current
-        permitted = params.permit(:tick_interval_seconds, :progress_min, :progress_max, :mode)
+        permitted = params.permit(:progress_min, :progress_max, :mode)
 
         # Validate mode if provided
         if permitted[:mode].present? && !SimulationConfig.modes.key?(permitted[:mode].to_s)

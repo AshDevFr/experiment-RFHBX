@@ -35,14 +35,14 @@ RSpec.describe "Api::V1::Simulation", type: :request do
       expect(response.parsed_body["running"]).to be(true)
     end
 
-    it "enqueues a QuestTickWorker" do
-      expect { post "/api/v1/simulation/start" }.to change(QuestTickWorker.jobs, :size).by(1)
+    it "does not enqueue QuestTickWorker (cron handles scheduling)" do
+      expect { post "/api/v1/simulation/start" }.not_to change(QuestTickWorker.jobs, :size)
     end
 
     it "is idempotent when already running" do
       config = SimulationConfig.current
       config.update!(running: true)
-      expect { post "/api/v1/simulation/start" }.not_to change(QuestTickWorker.jobs, :size)
+      post "/api/v1/simulation/start"
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["running"]).to be(true)
     end
@@ -94,13 +94,8 @@ RSpec.describe "Api::V1::Simulation", type: :request do
 
   describe "PATCH /api/v1/simulation/config" do
     it "returns HTTP 200" do
-      patch "/api/v1/simulation/config", params: { tick_interval_seconds: 30 }
+      patch "/api/v1/simulation/config", params: { progress_min: 0.05 }
       expect(response).to have_http_status(:ok)
-    end
-
-    it "updates tick_interval_seconds" do
-      patch "/api/v1/simulation/config", params: { tick_interval_seconds: 45 }
-      expect(response.parsed_body["tick_interval_seconds"]).to eq(45)
     end
 
     it "updates progress_min and progress_max" do
@@ -126,16 +121,15 @@ RSpec.describe "Api::V1::Simulation", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
-    it "returns 422 for tick_interval_seconds <= 0" do
-      patch "/api/v1/simulation/config", params: { tick_interval_seconds: 0 }
-      expect(response).to have_http_status(:unprocessable_entity)
+    it "ignores tick_interval_seconds param (no longer a permitted field)" do
+      patch "/api/v1/simulation/config", params: { progress_min: 0.05 }
+      expect(response).to have_http_status(:ok)
     end
 
     it "can update multiple fields at once" do
       patch "/api/v1/simulation/config",
-            params: { tick_interval_seconds: 120, progress_min: 0.02, progress_max: 0.15, mode: "random" }
+            params: { progress_min: 0.02, progress_max: 0.15, mode: "random" }
       body = response.parsed_body
-      expect(body["tick_interval_seconds"]).to eq(120)
       expect(body["mode"]).to eq("random")
     end
   end

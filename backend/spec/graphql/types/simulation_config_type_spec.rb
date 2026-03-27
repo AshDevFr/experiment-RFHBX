@@ -7,7 +7,7 @@ RSpec.describe Types::SimulationConfigType do
 
   it "exposes the expected fields" do
     expected_fields = %w[
-      id mode running tickIntervalSeconds
+      id mode running
       progressMin progressMax campaignPosition
       createdAt updatedAt
     ]
@@ -19,7 +19,7 @@ RSpec.describe Types::SimulationConfigType do
   end
 
   it "marks all fields as non-null" do
-    %w[id mode running tickIntervalSeconds progressMin progressMax campaignPosition createdAt updatedAt].each do |field|
+    %w[id mode running progressMin progressMax campaignPosition createdAt updatedAt].each do |field|
       expect(type.fields[field].type.non_null?).to be true
     end
   end

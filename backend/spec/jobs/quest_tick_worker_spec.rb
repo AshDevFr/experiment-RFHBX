@@ -546,45 +546,12 @@ RSpec.describe QuestTickWorker, type: :job do
     end
   end
 
-  describe "tick interval configuration" do
-    it "exposes TICK_INTERVAL as a positive integer (env var fallback)" do
-      expect(QuestTickWorker::TICK_INTERVAL).to be_a(Integer)
-      expect(QuestTickWorker::TICK_INTERVAL).to be > 0
-    end
-
-    it "reads TICK_INTERVAL from QUEST_TICK_INTERVAL env var when set" do
-      stub_const("QuestTickWorker::TICK_INTERVAL", 10)
-      expect(QuestTickWorker::TICK_INTERVAL).to eq(10)
-    end
-
-    context "when simulation is running" do
-      it "schedules the next tick using tick_interval_seconds from SimulationConfig (DB value)" do
-        config.update!(tick_interval_seconds: 30)
-        expect(QuestTickWorker).to receive(:perform_in).with(30)
-        subject.perform
-      end
-
-      it "falls back to TICK_INTERVAL when tick_interval_seconds is unavailable" do
-        # Simulate a scenario where the DB returns 0 (edge case guard)
-        worker = described_class.new
-        allow(config).to receive(:tick_interval_seconds).and_return(0)
-        expect(worker.send(:effective_tick_interval, config)).to eq(QuestTickWorker::TICK_INTERVAL)
-      end
-
-      it "prefers DB tick_interval_seconds over TICK_INTERVAL env var fallback" do
-        config.update!(tick_interval_seconds: 45)
-        stub_const("QuestTickWorker::TICK_INTERVAL", 10)
-        expect(QuestTickWorker).to receive(:perform_in).with(45)
-        subject.perform
-      end
-    end
-
+  describe "cron-only scheduling" do
     context "when simulation is not running" do
       before { config.update!(running: false) }
 
-      it "does not schedule a next tick when simulation is stopped" do
-        expect(QuestTickWorker).not_to receive(:perform_in)
-        subject.perform
+      it "returns early without processing quests" do
+        expect { subject.perform }.not_to change { config.reload.tick_count }
       end
     end
   end

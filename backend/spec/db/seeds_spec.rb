@@ -193,8 +193,10 @@ RSpec.describe "db/seeds", type: :model do
       expect(SimulationConfig.current.running).to be false
     end
 
-    it "sets a positive tick_interval_seconds" do
-      expect(SimulationConfig.current.tick_interval_seconds).to be_positive
+    it "sets progress_min and progress_max" do
+      config = SimulationConfig.current
+      expect(config.progress_min).to be_positive
+      expect(config.progress_max).to be_positive
     end
   end
 

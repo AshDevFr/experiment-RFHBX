@@ -4,7 +4,6 @@ FactoryBot.define do
   factory :simulation_config do
     mode { :campaign }
     running { false }
-    tick_interval_seconds { 60 }
     progress_min { 0.01 }
     progress_max { 0.1 }
     campaign_position { 0 }

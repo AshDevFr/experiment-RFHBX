@@ -1,45 +1,20 @@
 # frozen_string_literal: true
 
-# QuestTickWorker processes active quest state on every simulation tick and
-# reschedules itself for the next tick.
+# QuestTickWorker processes active quest state on every simulation tick.
 #
-# TICK INTERVAL — TWO DISTINCT SETTINGS
-# ─────────────────────────────────────────────────────────────────────────────
-# QUEST_TICK_INTERVAL (env var / .env):
-#   Infrastructure-level Sidekiq scheduling cadence.  Controls how often this
-#   worker re-enqueues itself via +perform_in+.  Managed by ops/infra; only
-#   affects how frequently the background job runs.  The sidekiq-cron entry
-#   (QUEST_TICK_CRON) acts as a dead-chain reviver (fires at most once per
-#   minute); fine-grained frequency comes from QUEST_TICK_INTERVAL.
-#
-# tick_interval_seconds (SimulationConfig DB column, editable in Simulation UI):
-#   Simulation clock speed — how many seconds the simulation considers a
-#   single "tick" to represent.  Stored in the database and controlled by
-#   operators through the Simulation UI.  Takes precedence over
-#   QUEST_TICK_INTERVAL when set: the worker reads this value at runtime so
-#   that UI changes take effect on the next tick without an infra deploy.
-#
-# The env var (TICK_INTERVAL constant) is the *fallback* scheduling cadence;
-# the DB value (tick_interval_seconds) is the *authoritative* source.
-# See .env.example for further documentation.
-# ─────────────────────────────────────────────────────────────────────────────
+# Scheduling is handled exclusively by sidekiq-cron (see sidekiq_cron.yml).
+# The QUEST_TICK_CRON env var controls the tick frequency (default: every 10 s
+# via a 6-field cron expression).  No self-scheduling (perform_in) is used.
 class QuestTickWorker
   include Sidekiq::Worker
 
   sidekiq_options queue: :default, retry: 3
-
-  # Fallback scheduling interval (seconds) used when SimulationConfig is
-  # unavailable.  Prefer the DB value (tick_interval_seconds) at runtime.
-  # Override the fallback via QUEST_TICK_INTERVAL env var.
-  # Default: 5 s in development/test for fast feedback; 60 s in production.
-  TICK_INTERVAL = ENV.fetch("QUEST_TICK_INTERVAL", Rails.env.production? ? 60 : 5).to_i
 
   def perform
     config = SimulationConfig.current
     return unless config.running?
 
     config.increment!(:tick_count)
-
     process_active_quests(config)
 
     if config.campaign?
@@ -47,25 +22,9 @@ class QuestTickWorker
     else
       ensure_random_quest(config)
     end
-
-    # Schedule the next tick.
-    # tick_interval_seconds (DB, editable via Simulation UI) takes precedence
-    # over QUEST_TICK_INTERVAL so operator UI changes take effect immediately
-    # without an infra restart.  Falls back to TICK_INTERVAL (env var) if the
-    # DB value is unavailable or zero.
-    self.class.perform_in(effective_tick_interval(config))
   end
 
   private
-
-  # Returns the tick scheduling interval in seconds.
-  # Prefers SimulationConfig#tick_interval_seconds (DB/UI-controlled) over
-  # the TICK_INTERVAL constant (env var fallback) so the Simulation UI setting
-  # is authoritative at runtime.
-  def effective_tick_interval(config)
-    db_interval = config.tick_interval_seconds.to_i
-    db_interval.positive? ? db_interval : TICK_INTERVAL
-  end
 
   def process_active_quests(config)
     Quest.where(status: :active).find_each do |quest|

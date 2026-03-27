@@ -6,7 +6,7 @@ RSpec.describe "GraphQL — simulationConfig query", type: :request do
   SIMULATION_CONFIG_QUERY = <<~GQL
     query {
       simulationConfig {
-        id mode running tickIntervalSeconds
+        id mode running
         progressMin progressMax campaignPosition
       }
     }
@@ -24,7 +24,6 @@ RSpec.describe "GraphQL — simulationConfig query", type: :request do
         expect(data).not_to be_nil
         expect(data["mode"]).to eq("CAMPAIGN")
         expect(data["running"]).to be false
-        expect(data["tickIntervalSeconds"]).to eq(60)
         expect(SimulationConfig.count).to eq(1)
       end
     end
@@ -34,7 +33,6 @@ RSpec.describe "GraphQL — simulationConfig query", type: :request do
         create(:simulation_config,
                mode: :random,
                running: true,
-               tick_interval_seconds: 30,
                progress_min: 0.05,
                progress_max: 0.2,
                campaign_position: 3)
@@ -48,7 +46,6 @@ RSpec.describe "GraphQL — simulationConfig query", type: :request do
         expect(data["id"]).to eq(config.id.to_s)
         expect(data["mode"]).to eq("RANDOM")
         expect(data["running"]).to be true
-        expect(data["tickIntervalSeconds"]).to eq(30)
         expect(data["progressMin"]).to be_within(0.001).of(0.05)
         expect(data["progressMax"]).to be_within(0.001).of(0.2)
         expect(data["campaignPosition"]).to eq(3)

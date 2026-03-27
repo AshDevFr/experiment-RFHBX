@@ -7,7 +7,6 @@ module Types
     field :id, ID, null: false
     field :mode, Types::SimulationModeEnum, null: false
     field :running, Boolean, null: false
-    field :tick_interval_seconds, Integer, null: false
     field :progress_min, Float, null: false
     field :progress_max, Float, null: false
     field :campaign_position, Integer, null: false

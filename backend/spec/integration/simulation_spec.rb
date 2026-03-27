@@ -86,17 +86,12 @@ RSpec.describe "Simulation", type: :request do
       operationId "updateSimulationConfig"
       consumes "application/json"
       produces "application/json"
-      description "Updates simulation parameters such as tick interval, progress bounds, " \
-                  "and mode. All fields are optional; only provided fields are updated."
+      description "Updates simulation parameters such as progress bounds and mode. " \
+                  "All fields are optional; only provided fields are updated."
 
       parameter name: :body, in: :body, required: false, schema: {
         type: :object,
         properties: {
-          tick_interval_seconds: {
-            type: :integer,
-            description: "Seconds between simulation ticks (must be > 0)",
-            example: 60
-          },
           progress_min: {
             type: :number,
             format: :float,
@@ -120,13 +115,13 @@ RSpec.describe "Simulation", type: :request do
 
       response "200", "configuration updated" do
         schema "$ref" => "#/components/schemas/SimulationConfig"
-        let(:body) { { tick_interval_seconds: 30 } }
+        let(:body) { { progress_min: 0.02 } }
         run_test!
       end
 
       response "422", "validation failed" do
         schema "$ref" => "#/components/schemas/ErrorResponse"
-        let(:body) { { tick_interval_seconds: 0 } }
+        let(:body) { { mode: "invalid" } }
         run_test!
       end
     end

@@ -47,7 +47,6 @@ const sampleConfig = {
   id: 1,
   mode: 'campaign' as const,
   running: false,
-  tick_interval_seconds: 60,
   progress_min: 0.01,
   progress_max: 0.1,
   campaign_position: 0,
@@ -61,7 +60,6 @@ const sampleConfig = {
 describe('validateConfigForm', () => {
   it('returns no errors for valid values', () => {
     const errors = validateConfigForm({
-      tick_interval_seconds: 60,
       progress_min: 0.01,
       progress_max: 0.1,
       mode: 'campaign',
@@ -69,29 +67,8 @@ describe('validateConfigForm', () => {
     expect(errors).toEqual({});
   });
 
-  it('errors when tick_interval_seconds is 0', () => {
-    const errors = validateConfigForm({
-      tick_interval_seconds: 0,
-      progress_min: 0.01,
-      progress_max: 0.1,
-      mode: 'campaign',
-    });
-    expect(errors.tick_interval_seconds).toBeTruthy();
-  });
-
-  it('errors when tick_interval_seconds is negative', () => {
-    const errors = validateConfigForm({
-      tick_interval_seconds: -5,
-      progress_min: 0.01,
-      progress_max: 0.1,
-      mode: 'campaign',
-    });
-    expect(errors.tick_interval_seconds).toBeTruthy();
-  });
-
   it('errors when progress_min >= progress_max', () => {
     const errors = validateConfigForm({
-      tick_interval_seconds: 60,
       progress_min: 0.5,
       progress_max: 0.3,
       mode: 'campaign',
@@ -102,7 +79,6 @@ describe('validateConfigForm', () => {
 
   it('errors when progress_min equals progress_max', () => {
     const errors = validateConfigForm({
-      tick_interval_seconds: 60,
       progress_min: 0.1,
       progress_max: 0.1,
       mode: 'campaign',
@@ -112,7 +88,6 @@ describe('validateConfigForm', () => {
 
   it('errors when progress_min is below 0', () => {
     const errors = validateConfigForm({
-      tick_interval_seconds: 60,
       progress_min: -0.1,
       progress_max: 0.1,
       mode: 'campaign',
@@ -122,7 +97,6 @@ describe('validateConfigForm', () => {
 
   it('errors when progress_max exceeds 1', () => {
     const errors = validateConfigForm({
-      tick_interval_seconds: 60,
       progress_min: 0.1,
       progress_max: 1.5,
       mode: 'campaign',
@@ -313,7 +287,6 @@ describe('SimulationConfigForm', () => {
     fireEvent.click(screen.getByTestId('save-config-button'));
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
-        tick_interval_seconds: 60,
         progress_min: 0.01,
         progress_max: 0.1,
         mode: 'campaign',

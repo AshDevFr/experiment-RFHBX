@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe SimulationConfig, type: :model do
   describe "validations" do
-    it { is_expected.to validate_numericality_of(:tick_interval_seconds).is_greater_than(0) }
+    it { is_expected.to validate_numericality_of(:tick_count).is_greater_than_or_equal_to(0) }
   end
 
   describe "defaults" do
@@ -16,10 +16,6 @@ RSpec.describe SimulationConfig, type: :model do
 
     it "defaults running to false" do
       expect(config.running).to be false
-    end
-
-    it "defaults tick_interval_seconds to 60" do
-      expect(config.tick_interval_seconds).to eq(60)
     end
 
     it "defaults progress_min to 0.01" do
@@ -62,7 +58,7 @@ RSpec.describe SimulationConfig, type: :model do
 
     it "allows updating the existing instance" do
       config = create(:simulation_config)
-      config.tick_interval_seconds = 30
+      config.progress_min = 0.05
       expect(config).to be_valid
     end
   end
