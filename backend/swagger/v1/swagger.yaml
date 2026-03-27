@@ -511,9 +511,6 @@ components:
         running:
           type: boolean
           example: false
-        tick_interval_seconds:
-          type: integer
-          example: 60
         progress_min:
           type: string
           example: '0.0100'
@@ -1547,8 +1544,8 @@ paths:
       tags:
       - Simulation
       operationId: updateSimulationConfig
-      description: Updates simulation parameters such as tick interval, progress bounds,
-        and mode. All fields are optional; only provided fields are updated.
+      description: Updates simulation parameters such as progress bounds and mode.
+        All fields are optional; only provided fields are updated.
       parameters: []
       responses:
         '200':
@@ -1569,10 +1566,6 @@ paths:
             schema:
               type: object
               properties:
-                tick_interval_seconds:
-                  type: integer
-                  description: Seconds between simulation ticks (must be > 0)
-                  example: 60
                 progress_min:
                   type: number
                   format: float
