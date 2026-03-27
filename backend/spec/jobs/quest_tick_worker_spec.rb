@@ -51,6 +51,29 @@ RSpec.describe QuestTickWorker, type: :job do
         subject.perform
         expect(quest.reload.progress.to_f).to be_within(0.001).of(0.05)
       end
+
+      it "clamps progress to 1.0 and does not exceed it" do
+        quest.update!(progress: 0.98)
+        config.update!(progress_min: 0.05, progress_max: 0.05)
+        subject.perform
+        expect(quest.reload.progress.to_f).to be <= 1.0
+      end
+
+      it "does not broadcast a progress event when progress reaches 1.0" do
+        quest.update!(progress: 0.98)
+        config.update!(progress_min: 0.05, progress_max: 0.05)
+        # Force success so quest completes
+        allow_any_instance_of(QuestTickWorker).to receive(:rand).with(100.0).and_return(1.0)
+        allow_any_instance_of(QuestTickWorker).to receive(:rand).with(no_args).and_return(0.5)
+
+        broadcasts = []
+        allow(QuestEventBroadcaster).to receive(:broadcast) { |e| broadcasts << e }
+
+        subject.perform
+
+        progress_broadcasts = broadcasts.select { |e| e.event_type == "progress" }
+        expect(progress_broadcasts).to be_empty
+      end
     end
 
     context "quest completion — success" do
@@ -133,6 +156,17 @@ RSpec.describe QuestTickWorker, type: :job do
         subject.perform
         expect(quest.reload.characters).to include(character)
         expect(character.reload.status).to eq("on_quest")
+      end
+
+      it "broadcasts the failed event (not just restarted)" do
+        broadcasts = []
+        allow(QuestEventBroadcaster).to receive(:broadcast) { |e| broadcasts << e }
+
+        subject.perform
+
+        broadcast_types = broadcasts.map(&:event_type)
+        expect(broadcast_types).to include("failed")
+        expect(broadcast_types).to include("restarted")
       end
     end
   end

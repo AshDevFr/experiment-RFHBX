@@ -153,4 +153,12 @@ describe('QuestDetailModal', () => {
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
+
+  it('clamps progress to 100% when backend sends value > 1.0', () => {
+    const overflowQuest: Quest = { ...sampleQuest, status: 'active', progress: 1.05 };
+    render(<QuestDetailModal quest={overflowQuest} onClose={vi.fn()} />, { wrapper });
+
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '100');
+  });
 });

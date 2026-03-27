@@ -225,6 +225,32 @@ describe('QuestCard', () => {
     expect(bar).toHaveAttribute('aria-valuenow', '100');
   });
 
+  it('clamps progress to 100% when backend sends value > 1.0', () => {
+    const overflowQuest: Quest = {
+      ...sampleQuest,
+      status: 'active',
+      progress: 1.05,
+    };
+    render(<QuestCard quest={overflowQuest} onClick={vi.fn()} />, { wrapper });
+
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '100');
+    expect(bar).toHaveAttribute('aria-label', 'Quest progress: 100%');
+  });
+
+  it('clamps progress to 0% when backend sends negative value', () => {
+    const negativeQuest: Quest = {
+      ...sampleQuest,
+      status: 'active',
+      progress: -0.1,
+    };
+    render(<QuestCard quest={negativeQuest} onClick={vi.fn()} />, { wrapper });
+
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
+    expect(bar).toHaveAttribute('aria-label', 'Quest progress: 0%');
+  });
+
   // ---------------------------------------------------------------------------
   // Layout tests — verify consistent card height and button anchoring (#188)
   // ---------------------------------------------------------------------------

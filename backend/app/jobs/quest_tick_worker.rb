@@ -90,17 +90,24 @@ class QuestTickWorker
 
   def tick_quest(quest, config)
     increment = rand_progress(config.progress_min, config.progress_max)
-    quest.progress += increment
+    quest.progress = [quest.progress + increment, 1.0].min
     quest.save!
 
-    event = QuestEvent.create!(
-      quest: quest,
-      event_type: :progress,
-      message: generate_progress_message(quest),
-      data: { progress: quest.progress.to_f, increment: increment.to_f }
-    )
+    # When progress reaches 1.0 the quest is about to be resolved — skip the
+    # progress broadcast and let the resolution handler (handle_success /
+    # handle_failure) be the sole broadcaster.  This eliminates the race where
+    # a stale progress event (e.g. 1.05) overtakes the resolution event on the
+    # ActionCable channel.
+    unless quest.progress >= 1.0
+      event = QuestEvent.create!(
+        quest: quest,
+        event_type: :progress,
+        message: generate_progress_message(quest),
+        data: { progress: quest.progress.to_f, increment: increment.to_f }
+      )
 
-    QuestEventBroadcaster.broadcast(event)
+      QuestEventBroadcaster.broadcast(event)
+    end
 
     resolve_quest(quest, config) if quest.progress >= 1.0
   end
@@ -176,24 +183,26 @@ class QuestTickWorker
       attempts: quest.attempts + 1
     )
 
-    QuestEvent.create!(
+    failed_event = QuestEvent.create!(
       quest: quest,
       event_type: :failed,
       message: "#{quest.title} failed. The party earned #{xp_reward} XP and will try again.",
       data: { xp_awarded: xp_reward, result: "failure", attempts: quest.attempts }
     )
 
+    QuestEventBroadcaster.broadcast(failed_event)
+
     # Reset and re-activate with same party
     quest.update!(status: :active, progress: 0.0)
 
-    QuestEvent.create!(
+    restarted_event = QuestEvent.create!(
       quest: quest,
       event_type: :restarted,
       message: "#{quest.title} has been restarted (attempt ##{quest.attempts + 1}).",
       data: { attempt: quest.attempts + 1 }
     )
 
-    broadcast_quest_update(quest, :restarted)
+    QuestEventBroadcaster.broadcast(restarted_event)
   end
 
   def check_level_up(character, quest = nil)

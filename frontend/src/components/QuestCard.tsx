@@ -41,7 +41,7 @@ export function QuestCard({ quest, onClick, onAdvance }: QuestCardProps) {
     quest.status === 'completed'
       ? 100
       : quest.progress != null
-        ? Math.round(quest.progress * 100)
+        ? Math.min(Math.max(Math.round(quest.progress * 100), 0), 100)
         : null;
 
   return (
