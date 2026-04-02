@@ -40,7 +40,7 @@ vi.mock('../auth/authGuard', () => ({
 // Import AFTER vi.mock calls so the mocks are in place.
 import { Route } from './_auth';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: accessing internal component for test assertions only
 const AuthenticatedLayout = (Route as any).component as () => ReactElement | null;
 
 describe('AuthenticatedLayout — returnTo redirect', () => {
