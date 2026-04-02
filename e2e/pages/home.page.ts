@@ -16,13 +16,4 @@ export class HomePage extends BasePage {
   async navigate(): Promise<void> {
     await this.goto('/');
   }
-
-  /** Check that the page rendered without uncaught JS errors. */
-  async hasNoConsoleErrors(): Promise<boolean> {
-    const errors: string[] = [];
-    this.page.on('pageerror', (err) => errors.push(err.message));
-    // Give the page a moment to settle after navigation
-    await this.page.waitForTimeout(1_000);
-    return errors.length === 0;
-  }
 }

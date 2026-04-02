@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
+import { HomePage } from '../pages/home.page';
 
 test.describe('Home Page', () => {
   test('renders without JS errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
 
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    const homePage = new HomePage(page);
+    await homePage.navigate();
+    await homePage.waitForNetworkIdle();
 
     // The page should have loaded (either the login page or a redirect).
     // Verify no uncaught JS exceptions occurred during render.
@@ -18,11 +20,10 @@ test.describe('Home Page', () => {
   });
 
   test('page has visible content', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
+    const homePage = new HomePage(page);
+    await homePage.navigate();
 
     // The app should render something — either the login form or a redirect
-    const heading = page.locator('h1, h2, h3, h4').first();
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(homePage.heading).toBeVisible({ timeout: 15_000 });
   });
 });
