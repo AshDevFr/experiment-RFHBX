@@ -1,1 +1,17 @@
-IyEvYmluL2Jhc2gKc2V0IC1lCgojIFdyaXRlIERvY2tlci1pbmplY3RlZCBWSVRFXyogZW52IHZhcnMgdG8gLmVudi5sb2NhbCBzbyBWaXRlIGNhbiBleHBvc2UKIyB0aGVtIHRvIHRoZSBicm93c2VyIGJ1bmRsZSBuYXRpdmVseSB2aWEgaW1wb3J0Lm1ldGEuZW52LiAgVml0ZSBvbmx5IHJlYWRzCiMgLmVudiBmaWxlcyDigJQgaXQgZG9lcyBOT1QgcmVhZCBwcm9jZXNzLmVudiBmb3IgY2xpZW50LXNpZGUgaW5qZWN0aW9uIOKAlCBzbwojIHRoaXMgaXMgdGhlIHJlbGlhYmxlIHdheSB0byBmb3J3YXJkIGNvbXBvc2UgZW52aXJvbm1lbnQgdmFyaWFibGVzIHN1Y2ggYXMKIyBWSVRFX0FQSV9CQVNFX1VSTCBhbmQgVklURV9ERVZfQVVUSF9CWVBBU1MgaW50byB0aGUgYnJvd3NlciBidW5kbGUuCiMgVGhlIGZpbGUgaXMgb3ZlcndyaXR0ZW4gb24gZXZlcnkgY29udGFpbmVyIHN0YXJ0IHNvIHN0YWxlIHZhbHVlcyBuZXZlcgojIGFjY3VtdWxhdGUuICBBbiBlbXB0eSAuZW52LmxvY2FsICh3aGVuIG5vIFZJVEVfKiB2YXJzIGFyZSBzZXQpIGlzIGZpbmUuCnByaW50ZW52IHwgZ3JlcCAtRSAnXlZJVEVfJyA+IC5lbnYubG9jYWwgfHwgdHJ1ZQoKIyBJbnN0YWxsIGFueSBwYWNrYWdlcyBhZGRlZCB0byBwYWNrYWdlLmpzb24gc2luY2UgdGhlIERvY2tlciBpbWFnZSAob3IKIyB0aGUgcGVyc2lzdGVkIGZyb250ZW5kX25vZGVfbW9kdWxlcyB2b2x1bWUpIHdhcyBsYXN0IGJ1aWx0LgpucG0gaW5zdGFsbAoKZXhlYyAiJEAiCg==
+#!/bin/bash
+set -e
+
+# Write Docker-injected VITE_* env vars to .env.local so Vite can expose
+# them to the browser bundle natively via import.meta.env.  Vite only reads
+# .env files — it does NOT read process.env for client-side injection — so
+# this is the reliable way to forward compose environment variables such as
+# VITE_API_BASE_URL and VITE_DEV_AUTH_BYPASS into the browser bundle.
+# The file is overwritten on every container start so stale values never
+# accumulate.  An empty .env.local (when no VITE_* vars are set) is fine.
+printenv | grep -E '^VITE_' > .env.local || true
+
+# Install any packages added to package.json since the Docker image (or
+# the persisted frontend_node_modules volume) was last built.
+npm install
+
+exec "$@"
