@@ -1,0 +1,113 @@
+name: E2E Smoke Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build all Docker images
+        run: docker compose -f docker-compose.e2e.yml build
+
+      - name: Pull infrastructure images
+        run: docker compose -f docker-compose.e2e.yml pull postgres redis elasticmq
+
+      - name: Start infrastructure services
+        run: docker compose -f docker-compose.e2e.yml up -d postgres redis elasticmq
+
+      - name: Wait for infrastructure to be healthy
+        run: |
+          echo "Waiting for postgres and redis to be healthy..."
+          for svc in postgres redis; do
+            echo "  $svc: waiting..."
+            timeout 120 bash -c "
+              until docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{end}}' \$(docker compose -f docker-compose.e2e.yml ps -q $svc) 2>/dev/null | grep -q healthy; do
+                sleep 3
+              done
+            "
+            echo "  $svc: healthy"
+          done
+
+      - name: Start application services
+        run: docker compose -f docker-compose.e2e.yml up -d backend sidekiq frontend 2>&1 || true
+
+      - name: Wait for backend to be ready
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 8
+          max_attempts: 3
+          retry_on: error
+          on_retry_command: |
+            docker compose -f docker-compose.e2e.yml down -v
+            docker compose -f docker-compose.e2e.yml up -d postgres redis elasticmq
+            echo "Waiting for postgres..."
+            timeout 120 bash -c '
+              until docker inspect \
+                --format="{{if .State.Health}}{{.State.Health.Status}}{{end}}" \
+                "$(docker compose -f docker-compose.e2e.yml ps -q postgres)" 2>/dev/null | grep -q healthy; do
+                sleep 3
+              done
+            '
+            docker compose -f docker-compose.e2e.yml up -d backend sidekiq frontend 2>&1 || true
+          command: |
+            echo "Waiting for backend..."
+            until curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
+              if [ -n "$(docker compose -f docker-compose.e2e.yml ps --status exited -q backend 2>/dev/null)" ]; then
+                echo "ERROR: backend container exited. Last 100 log lines:"
+                docker compose -f docker-compose.e2e.yml logs --tail=100 backend
+                exit 1
+              fi
+              echo "  backend: waiting..."
+              sleep 5
+            done
+            echo "  backend: ready"
+
+      - name: Wait for frontend to be ready
+        run: |
+          echo "Waiting for frontend..."
+          timeout 180 bash -c '
+            until curl -sf http://localhost:5173 > /dev/null 2>&1; do
+              echo "  frontend: waiting..."
+              sleep 5
+            done
+          '
+          echo "  frontend: ready"
+
+      - name: Run Playwright E2E tests
+        id: e2e-run
+        run: |
+          docker compose -f docker-compose.e2e.yml run \
+            --rm -T \
+            -v "$(pwd)/playwright-report:/e2e/playwright-report" \
+            -v "$(pwd)/test-results:/e2e/test-results" \
+            playwright
+
+      - name: Upload Playwright report
+        if: failure() && steps.e2e-run.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yml logs --tail=200
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.e2e.yml down -v
