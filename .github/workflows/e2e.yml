@@ -77,16 +77,16 @@ jobs:
             echo "  backend: ready"
 
       - name: Wait for frontend to be ready
-        # Mirrors the backend retry pattern: if the frontend container crashes or
-        # never becomes responsive, tear down the entire stack and rebuild.
-        # timeout_minutes=5 per attempt; 3 attempts = 15 min worst-case.
+        # Wait for the Docker healthcheck to mark the frontend as healthy.
+        # The healthcheck (node http.get on localhost:5173 inside the container)
+        # has a 90 s start_period, so this step may take up to ~2 min.
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 5
           max_attempts: 3
           retry_on: error
           on_retry_command: |
-            echo "Frontend not ready \u2014 tearing down and rebuilding the stack..."
+            echo "Frontend not ready — tearing down and rebuilding the stack..."
             docker compose -f docker-compose.e2e.yml logs --tail=50 frontend
             docker compose -f docker-compose.e2e.yml down -v
             docker compose -f docker-compose.e2e.yml up -d postgres redis elasticmq
@@ -106,23 +106,83 @@ jobs:
               done
             '
           command: |
-            echo "Waiting for frontend..."
-            until curl -sf http://localhost:5173 > /dev/null 2>&1; do
-              if [ -n "$(docker compose -f docker-compose.e2e.yml ps --status exited -q frontend 2>/dev/null)" ]; then
-                echo "ERROR: frontend container exited. Last 100 log lines:"
-                docker compose -f docker-compose.e2e.yml logs --tail=100 frontend
-                exit 1
-              fi
-              echo "  frontend: waiting..."
-              sleep 5
-            done
-            echo "  frontend: ready"
+            echo "Waiting for frontend Docker healthcheck..."
+            FE_CID=$(docker compose -f docker-compose.e2e.yml ps -q frontend)
+            timeout 300 bash -c "
+              while true; do
+                STATUS=\$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{end}}' $FE_CID 2>/dev/null || echo 'unknown')
+                case \$STATUS in
+                  healthy)
+                    echo '  frontend: healthy'
+                    exit 0
+                    ;;
+                  unhealthy)
+                    echo 'ERROR: frontend marked unhealthy. Last 100 log lines:'
+                    docker compose -f docker-compose.e2e.yml logs --tail=100 frontend
+                    exit 1
+                    ;;
+                  *)
+                    # Also check if the container exited
+                    RUNNING=\$(docker inspect --format='{{.State.Running}}' $FE_CID 2>/dev/null || echo false)
+                    if [ \"\$RUNNING\" = 'false' ]; then
+                      echo 'ERROR: frontend container exited. Last 100 log lines:'
+                      docker compose -f docker-compose.e2e.yml logs --tail=100 frontend
+                      exit 1
+                    fi
+                    echo \"  frontend: \$STATUS — waiting...\"
+                    sleep 5
+                    ;;
+                esac
+              done
+            "
+
+      - name: Verify inter-container networking
+        # Sanity-check that the Playwright container can reach both services
+        # via Docker DNS BEFORE we run the full test suite. This catches
+        # Docker networking issues that host-level curl cannot detect.
+        run: |
+          echo "Checking Docker network connectivity from a temporary container..."
+          docker compose -f docker-compose.e2e.yml run --rm -T --no-deps \
+            --entrypoint="" playwright bash -c '
+              echo "=== DNS resolution ==="
+              getent hosts frontend || echo "WARNING: cannot resolve frontend"
+              getent hosts backend  || echo "WARNING: cannot resolve backend"
+
+              echo ""
+              echo "=== Backend connectivity ==="
+              node -e "
+                const http = require(\"http\");
+                http.get(\"http://backend:3000/api/health\", (res) => {
+                  console.log(\"  backend: HTTP \" + res.statusCode);
+                  process.exit(res.statusCode < 500 ? 0 : 1);
+                }).on(\"error\", (e) => {
+                  console.error(\"  backend: \" + e.message);
+                  process.exit(1);
+                });
+              "
+
+              echo ""
+              echo "=== Frontend connectivity ==="
+              node -e "
+                const http = require(\"http\");
+                http.get(\"http://frontend:5173\", (res) => {
+                  console.log(\"  frontend: HTTP \" + res.statusCode);
+                  process.exit(res.statusCode < 500 ? 0 : 1);
+                }).on(\"error\", (e) => {
+                  console.error(\"  frontend: \" + e.message);
+                  process.exit(1);
+                });
+              "
+
+              echo ""
+              echo "=== All connectivity checks passed ==="
+            '
 
       - name: Run Playwright E2E tests
         id: e2e-run
         run: |
           docker compose -f docker-compose.e2e.yml run \
-            --rm -T \
+            --rm -T --no-deps \
             -v "$(pwd)/playwright-report:/e2e/playwright-report" \
             -v "$(pwd)/test-results:/e2e/test-results" \
             playwright
