@@ -1,1 +1,38 @@
-aW1wb3J0IHsgVGFuU3RhY2tSb3V0ZXJWaXRlIH0gZnJvbSAnQHRhbnN0YWNrL3JvdXRlci1wbHVnaW4vdml0ZSc7CmltcG9ydCByZWFjdCBmcm9tICdAdml0ZWpzL3BsdWdpbi1yZWFjdC1zd2MnOwppbXBvcnQgeyBkZWZpbmVDb25maWcsIGxvYWRFbnYgfSBmcm9tICd2aXRlJzsKCmV4cG9ydCBkZWZhdWx0IGRlZmluZUNvbmZpZygoeyBtb2RlIH0pID0+IHsKICAvLyBMb2FkIGVudiB2YXJzIGZyb20gLmVudiBmaWxlcyAoaW5jbHVkaW5nIC5lbnYubG9jYWwgd3JpdHRlbiBieQogIC8vIGVudHJ5cG9pbnQuc2ggYXQgY29udGFpbmVyIHN0YXJ0KS4gIFVzaW5nIGFuIGVtcHR5IHByZWZpeCByZWFkcyBBTEwgdmFycywKICAvLyBub3QganVzdCBWSVRFXy1wcmVmaXhlZCBvbmVzLCBzbyBWSVRFX0FQSV9CQVNFX1VSTCBpcyBhdmFpbGFibGUgaGVyZSBmb3IKICAvLyB0aGUgcHJveHkgdGFyZ2V0LgogIC8vCiAgLy8gTm90ZTogVklURV8qIHZhcmlhYmxlcyBpbiAuZW52LmxvY2FsIGFyZSBhdXRvbWF0aWNhbGx5IGV4cG9zZWQgdG8gdGhlCiAgLy8gYnJvd3NlciBidW5kbGUgYXMgaW1wb3J0Lm1ldGEuZW52LlZJVEVfKiBieSBWaXRlJ3MgbmF0aXZlIGVudiBoYW5kbGluZy4KICAvLyBObyBtYW51YWwgYGRlZmluZWAgb3ZlcnJpZGUgaXMgbmVlZGVkIG9yIHNhZmUg4oCUIHVzaW5nIGBkZWZpbmVgIHRvIG92ZXJyaWRlCiAgLy8gaW1wb3J0Lm1ldGEuZW52Lioga2V5cyBjb25mbGljdHMgd2l0aCBWaXRlIDgncyBvd24gZW52IHByb2Nlc3NpbmcgYW5kCiAgLy8gY2F1c2VzIHRoZSB2YWx1ZXMgdG8gYmUgc2lsZW50bHkgaWdub3JlZCBpbiB0aGUgYnJvd3NlciBidW5kbGUuCiAgY29uc3QgZW52ID0gbG9hZEVudihtb2RlLCBwcm9jZXNzLmN3ZCgpLCAnJyk7CgogIGNvbnN0IGFwaVRhcmdldCA9IGVudi5WSVRFX0FQSV9CQVNFX1VSTCB8fCAnaHR0cDovL2xvY2FsaG9zdDozMDAwJzsKCiAgcmV0dXJuIHsKICAgIHBsdWdpbnM6IFsKICAgICAgVGFuU3RhY2tSb3V0ZXJWaXRlKHsKICAgICAgICByb3V0ZXNEaXJlY3Rvcnk6ICcuL3NyYy9yb3V0ZXMnLAogICAgICAgIGdlbmVyYXRlZFJvdXRlVHJlZTogJy4vc3JjL3JvdXRlVHJlZS5nZW4udHMnLAogICAgICB9KSwKICAgICAgcmVhY3QoKSwKICAgIF0sCiAgICBzZXJ2ZXI6IHsKICAgICAgaG9zdDogdHJ1ZSwKICAgICAgcHJveHk6IHsKICAgICAgICAnL2FwaSc6IHsKICAgICAgICAgIHRhcmdldDogYXBpVGFyZ2V0LAogICAgICAgICAgY2hhbmdlT3JpZ2luOiB0cnVlLAogICAgICAgIH0sCiAgICAgIH0sCiAgICB9LAogIH07Cn0pOwo=
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig, loadEnv } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  // Load env vars from .env files (including .env.local written by
+  // entrypoint.sh at container start).  Using an empty prefix reads ALL vars,
+  // not just VITE_-prefixed ones, so VITE_API_BASE_URL is available here for
+  // the proxy target.
+  //
+  // Note: VITE_* variables in .env.local are automatically exposed to the
+  // browser bundle as import.meta.env.VITE_* by Vite's native env handling.
+  // No manual `define` override is needed or safe — using `define` to override
+  // import.meta.env.* keys conflicts with Vite 8's own env processing and
+  // causes the values to be silently ignored in the browser bundle.
+  const env = loadEnv(mode, process.cwd(), '');
+
+  const apiTarget = env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+  return {
+    plugins: [
+      TanStackRouterVite({
+        routesDirectory: './src/routes',
+        generatedRouteTree: './src/routeTree.gen.ts',
+      }),
+      react(),
+    ],
+    server: {
+      host: true,
+      proxy: {
+        '/api': {
+          target: apiTarget,
+          changeOrigin: true,
+        },
+      },
+    },
+  };
+});
