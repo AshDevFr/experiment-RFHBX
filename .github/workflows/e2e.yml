@@ -77,15 +77,44 @@ jobs:
             echo "  backend: ready"
 
       - name: Wait for frontend to be ready
+        # Timeout rationale: start_period=90s absorbs npm-install + Vite cold start;
+        # 210s outer timeout gives 120s beyond that for retries before we give up.
         run: |
-          echo "Waiting for frontend..."
-          timeout 180 bash -c '
-            until curl -sf http://localhost:5173 > /dev/null 2>&1; do
-              echo "  frontend: waiting..."
-              sleep 5
-            done
-          '
-          echo "  frontend: ready"
+          echo "Waiting for frontend container to become healthy..."
+          TIMEOUT=210
+          ELAPSED=0
+          INTERVAL=5
+          while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+            CONTAINER_ID=$(docker compose -f docker-compose.e2e.yml ps -q frontend 2>/dev/null | head -1)
+            if [ -n "$CONTAINER_ID" ]; then
+              STATUS=$(docker inspect \
+                --format='{{if .State.Health}}{{.State.Health.Status}}{{end}}' \
+                "$CONTAINER_ID" 2>/dev/null)
+              if [ "$STATUS" = "healthy" ]; then
+                echo "  frontend: healthy (${ELAPSED}s elapsed)"
+                exit 0
+              fi
+              if [ "$STATUS" = "unhealthy" ]; then
+                echo "ERROR: frontend container is unhealthy. Last 100 log lines:"
+                docker compose -f docker-compose.e2e.yml logs --tail=100 frontend
+                exit 1
+              fi
+              STATE=$(docker inspect --format='{{.State.Status}}' "$CONTAINER_ID" 2>/dev/null)
+              if [ "$STATE" = "exited" ]; then
+                echo "ERROR: frontend container exited unexpectedly. Last 100 log lines:"
+                docker compose -f docker-compose.e2e.yml logs --tail=100 frontend
+                exit 1
+              fi
+              echo "  frontend: $STATUS — ${ELAPSED}s elapsed, waiting..."
+            else
+              echo "  frontend: container not found yet — ${ELAPSED}s elapsed"
+            fi
+            sleep "$INTERVAL"
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          echo "ERROR: frontend did not become healthy within ${TIMEOUT}s. Last 100 log lines:"
+          docker compose -f docker-compose.e2e.yml logs --tail=100 frontend
+          exit 1
 
       - name: Run Playwright E2E tests
         id: e2e-run
