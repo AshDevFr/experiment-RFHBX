@@ -3,9 +3,15 @@ import react from '@vitejs/plugin-react-swc';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
-  // Load ALL env vars (not just VITE_-prefixed ones) so we can forward
-  // DEV_AUTH_BYPASS from the root .env into the browser bundle.
-  const env = loadEnv(mode, process.cwd(), '');
+  // Load env vars from .env files (not just VITE_-prefixed ones) so we can
+  // forward DEV_AUTH_BYPASS from the root .env into the browser bundle.
+  const fileEnv = loadEnv(mode, process.cwd(), '');
+
+  // Merge with process.env so that Docker/CI environment variables are also
+  // picked up.  Vite's loadEnv() only reads .env files on disk — it does NOT
+  // read process.env.  In Docker Compose the env vars are injected into
+  // process.env at runtime, so we must fall back to them explicitly.
+  const env = { ...process.env, ...fileEnv };
 
   const apiTarget = env.VITE_API_BASE_URL || 'http://localhost:3000';
 
