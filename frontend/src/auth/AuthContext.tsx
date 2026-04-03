@@ -95,54 +95,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const manager = managerRef.current;
 
-  // Wire up event listeners.
-  useEffect(() => {
-    if (!manager) {
-      setIsLoading(false);
-      return;
+  // Dev bypass flag — read once from the env bundle so it can be used both
+  // in effects and in the render return below.
+  const isDevBypass = import.meta.env.VITE_DEV_AUTH_BYPASS === 'true';
+
+  // -------------------------------------------------------------------------
+  // Callbacks — declared before effects that reference them.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Dev-bypass login.  Calls the backend's dev auth endpoint to obtain a
+   * signed bypass token, then stores it in place of an OIDC access token.
+   * No-op if VITE_DEV_AUTH_BYPASS is not set.
+   */
+  const devLogin = useCallback(async (): Promise<void> => {
+    const response = await fetch('/api/dev/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Dev auth failed: ${response.status}`);
     }
 
-    const onUserLoaded = (u: User) => setUser(u);
-    const onUserUnloaded = () => setUser(null);
-    const onSilentRenewError = () => setUser(null);
-    const onAccessTokenExpired = () => setUser(null);
-
-    manager.events.addUserLoaded(onUserLoaded);
-    manager.events.addUserUnloaded(onUserUnloaded);
-    manager.events.addSilentRenewError(onSilentRenewError);
-    manager.events.addAccessTokenExpired(onAccessTokenExpired);
-
-    // Attempt to restore an existing session from the state store.
-    manager
-      .getUser()
-      .then((existingUser) => {
-        if (existingUser && !existingUser.expired) {
-          setUser(existingUser);
-        }
-      })
-      .catch(() => {
-        // No valid session — that is fine; user will be prompted to login.
-      })
-      .finally(() => setIsLoading(false));
-
-    return () => {
-      manager.events.removeUserLoaded(onUserLoaded);
-      manager.events.removeUserUnloaded(onUserUnloaded);
-      manager.events.removeSilentRenewError(onSilentRenewError);
-      manager.events.removeAccessTokenExpired(onAccessTokenExpired);
-    };
-  }, [manager]);
-
-  // Keep the Axios interceptor accessor in sync with the current user.
-  useEffect(() => {
-    if (user && !user.expired) {
-      setAuthTokenAccessor(() => user.access_token);
-    } else if (devToken) {
-      setAuthTokenAccessor(() => devToken);
-    } else {
-      clearAuthTokenAccessor();
-    }
-  }, [user, devToken]);
+    const data = (await response.json()) as { token: string; user: DevUser };
+    setDevToken(data.token);
+    setDevUser(data.user);
+    setAuthTokenAccessor(() => data.token);
+  }, []);
 
   const login = useCallback(
     async (returnTo?: string) => {
@@ -181,38 +161,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user?.access_token ?? null;
   }, [user, devToken]);
 
-  /**
-   * Dev-bypass login.  Calls the backend's dev auth endpoint to obtain a
-   * signed bypass token, then stores it in place of an OIDC access token.
-   * No-op if VITE_DEV_AUTH_BYPASS is not set.
-   */
-  const devLogin = useCallback(async (): Promise<void> => {
-    const response = await fetch('/api/dev/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // -------------------------------------------------------------------------
+  // Effects
+  // -------------------------------------------------------------------------
 
-    if (!response.ok) {
-      throw new Error(`Dev auth failed: ${response.status}`);
+  // Wire up event listeners and perform initial authentication.
+  //
+  // IMPORTANT: `isLoading` stays `true` until authentication is fully resolved.
+  // When dev-bypass is active and no OIDC manager is configured, devLogin() is
+  // called during the initial loading phase so that protected routes (via the
+  // _auth layout) see `isLoading=true` → show a spinner instead of redirecting
+  // to /login before the bypass token is established.  This prevents a race
+  // condition where `setIsLoading(false)` fires before devLogin completes,
+  // causing the _auth guard to bounce the user to the login page on every full
+  // page navigation (e.g. Playwright's page.goto).
+  useEffect(() => {
+    if (!manager) {
+      if (isDevBypass) {
+        // Auto dev-login during initial load — keep isLoading=true until done.
+        devLogin()
+          .catch((err: unknown) => {
+            console.error('[AuthContext] Auto dev-login failed:', err);
+          })
+          .finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+      return;
     }
 
-    const data = (await response.json()) as { token: string; user: DevUser };
-    setDevToken(data.token);
-    setDevUser(data.user);
-    setAuthTokenAccessor(() => data.token);
-  }, []);
+    const onUserLoaded = (u: User) => setUser(u);
+    const onUserUnloaded = () => setUser(null);
+    const onSilentRenewError = () => setUser(null);
+    const onAccessTokenExpired = () => setUser(null);
+
+    manager.events.addUserLoaded(onUserLoaded);
+    manager.events.addUserUnloaded(onUserUnloaded);
+    manager.events.addSilentRenewError(onSilentRenewError);
+    manager.events.addAccessTokenExpired(onAccessTokenExpired);
+
+    // Attempt to restore an existing session from the state store.
+    manager
+      .getUser()
+      .then((existingUser) => {
+        if (existingUser && !existingUser.expired) {
+          setUser(existingUser);
+        }
+      })
+      .catch(() => {
+        // No valid session — that is fine; user will be prompted to login.
+      })
+      .finally(() => setIsLoading(false));
+
+    return () => {
+      manager.events.removeUserLoaded(onUserLoaded);
+      manager.events.removeUserUnloaded(onUserUnloaded);
+      manager.events.removeSilentRenewError(onSilentRenewError);
+      manager.events.removeAccessTokenExpired(onAccessTokenExpired);
+    };
+  }, [manager, devLogin]);
+
+  // Keep the Axios interceptor accessor in sync with the current user.
+  useEffect(() => {
+    if (user && !user.expired) {
+      setAuthTokenAccessor(() => user.access_token);
+    } else if (devToken) {
+      setAuthTokenAccessor(() => devToken);
+    } else {
+      clearAuthTokenAccessor();
+    }
+  }, [user, devToken]);
 
   const isAuthenticated = (!!user && !user.expired) || !!devToken;
 
   // ---------------------------------------------------------------------------
-  // Auto-login when DEV_AUTH_BYPASS is active
+  // Auto-login when DEV_AUTH_BYPASS is active (fallback path)
   // ---------------------------------------------------------------------------
-  // If the bypass flag is set, call devLogin() automatically on mount so the
-  // developer never sees the OIDC login screen.  We guard against re-calling
-  // once already authenticated (devToken set) and wait until the loading phase
-  // has completed so we don't race with an existing OIDC session restore.
-  const isDevBypass = import.meta.env.VITE_DEV_AUTH_BYPASS === 'true';
-
+  // The primary auto-login path is in the initialization effect above (the
+  // `!manager` branch) where devLogin() runs BEFORE `isLoading` is set to
+  // false.  This fallback covers the edge case where an OIDC manager IS
+  // configured but no session was restored — e.g. a misconfigured OIDC
+  // provider in a dev environment with DEV_AUTH_BYPASS also active.
   useEffect(() => {
     if (isDevBypass && !isLoading && !isAuthenticated) {
       devLogin().catch((err: unknown) => {
