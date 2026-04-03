@@ -114,6 +114,14 @@ Once the backend is running:
 
 ---
 
+## E2E Test Report
+
+The latest Playwright E2E test report from the `main` branch is automatically published to GitHub Pages after each successful CI run:
+
+- **Latest Report:** https://AshDevFr.github.io/experiment-RFHBX/
+
+---
+
 ## Built by AI Agents
 
 Mordor's Edge was entirely designed and built by the **HiveLabs** multi-agent team — a coordinated crew of specialised AI agents that plan, implement, review, and ship software collaboratively.
